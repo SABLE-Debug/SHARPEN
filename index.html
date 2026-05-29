@@ -274,16 +274,18 @@
 <!-- ============ PROGRESS ============ -->
 <section class="view" id="v-prog"><div class="wrap">
   <div class="card">
-    <div class="lbl">Progress · is it working?</div>
-    <p class="goal">Your <b>Sharpness Score</b> blends filler-rate (down = good), vocabulary deployed, recall accuracy, and drills done. Watch the line move — that's the "people notice in a month."</p>
-    <div class="big"><span id="sharpNow">0</span><span class="small"> / 100 sharpness</span></div>
+    <div class="lbl">Sharpness Score</div>
+    <p class="goal"><b>What it measures:</b> how sharp your expression is — low filler, varied vocabulary, real substance.<br>
+    <b>Scale:</b> <span style="color:var(--bad)">0–50 needs work</span> · <span style="color:var(--warn)">50–75 solid</span> · <span style="color:var(--good)">75–100 sharp</span>.<br>
+    <b>How it's calculated</b> (average of your last 10 answers): start at 60 → −4 per filler word → −2 per hedging word → +vocabulary variety → +6 if the answer is meaty (40+ words).</p>
+    <div class="big"><span id="sharpNow">0</span><span class="small"> / 100</span></div>
     <div class="bar"><i id="sharpBar" style="width:0%"></i></div>
     <div id="trend" class="small mono" style="margin-top:6px"></div>
     <hr class="hr"/>
     <div class="row">
-      <div style="flex:1"><div class="lbl">Streak</div><div class="big" style="font-size:30px"><span id="streak2">0</span></div></div>
-      <div style="flex:1"><div class="lbl">Words owned</div><div class="big" style="font-size:30px" id="wordsOwned">0</div></div>
-      <div style="flex:1"><div class="lbl">Drills done</div><div class="big" style="font-size:30px" id="drillsDone">0</div></div>
+      <div style="flex:1"><div class="lbl">Streak</div><div class="big" style="font-size:30px"><span id="streak2">0</span></div><div class="small">days in a row · consistency compounds</div></div>
+      <div style="flex:1"><div class="lbl">Words owned</div><div class="big" style="font-size:30px" id="wordsOwned">0</div><div class="small">retained (hit box 2+), not just seen</div></div>
+      <div style="flex:1"><div class="lbl">Drills done</div><div class="big" style="font-size:30px" id="drillsDone">0</div><div class="small">lifetime total</div></div>
     </div>
   </div>
   <div class="card tight">
@@ -410,6 +412,141 @@ const WORDS = [
 const SPAR_TOPICS = ["AI will create more jobs than it destroys","University is no longer worth the cost","Remote work beats the office","Most startups should never raise money","Social media does more harm than good","Speed matters more than perfection when shipping","Discipline beats motivation","Owning attention beats owning product"];
 const FILLER=/\b(um+|uh+|like|basically|you know|kind of|sort of|i mean|literally|actually)\b/gi;
 const HEDGE=/\b(i think|maybe|probably|possibly|i guess|sort of|kind of|might|perhaps|just|a bit)\b/gi;
+
+// ===== CORPUS EXPANSION (2026-05-29) — words, concepts, numbers, topics =====
+WORDS.push(
+ ["ubiquitous","everywhere","phones are ubiquitous now","yoo-BIK-wih-tus"],["meticulous","very careful","meticulous notes","meh-TIK-yoo-lus"],
+ ["candid","honest / frank","a candid answer","KAN-did"],["arduous","very hard","an arduous climb","AR-joo-us"],
+ ["pivotal","crucial turning point","a pivotal moment","PIV-uh-tul"],["nuanced","subtle / shaded","a nuanced take","NOO-anst"],
+ ["profound","deep","a profound shift","pruh-FOWND"],["succinct","short and clear","keep it succinct","suk-SINKT"],
+ ["verbose","too wordy","a verbose reply","ver-BOHSS"],["ambiguous","unclear / two meanings","an ambiguous reply","am-BIG-yoo-us"],
+ ["coherent","hangs together","a coherent plan","koh-HEER-ent"],["resilient","bounces back","a resilient system","ree-ZIL-yent"],
+ ["volatile","unstable / jumpy","a volatile market","VOL-uh-tul"],["prudent","sensibly cautious","a prudent move","PROO-dent"],
+ ["astute","sharp / shrewd","an astute point","uh-STOOT"],["eloquent","well-spoken","an eloquent case","EL-uh-kwent"],
+ ["inevitable","unavoidable","an inevitable outcome","in-EV-ih-tuh-bul"],["scarce","in short supply","time is scarce","skairss"],
+ ["abundant","plentiful","abundant options","uh-BUN-dent"],["intricate","complex / detailed","an intricate design","IN-trih-kut"],
+ ["trivial","unimportant","a trivial detail","TRIV-ee-ul"],["substantial","large / real","a substantial gain","sub-STAN-shul"],
+ ["negligible","tiny / ignorable","a negligible cost","NEG-lih-jih-bul"],["arbitrary","random / no reason","an arbitrary rule","AR-bih-trair-ee"],
+ ["deliberate","on purpose","a deliberate choice","dih-LIB-er-ut"],["spontaneous","unplanned","a spontaneous idea","spon-TAY-nee-us"],
+ ["tedious","boring / slow","a tedious task","TEE-dee-us"],["compelling","convincing","a compelling reason","kum-PEL-ing"],
+ ["daunting","intimidating","a daunting goal","DAWN-ting"],["formidable","strong / impressive","a formidable rival","FOR-mih-duh-bul"],
+ ["elusive","hard to grasp","an elusive answer","ee-LOO-siv"],["relentless","never stopping","relentless effort","ree-LENT-less"],
+ ["tenacious","persistent","a tenacious mind","tuh-NAY-shus"],["audacious","boldly daring","an audacious bet","aw-DAY-shus"],
+ ["mundane","ordinary / dull","mundane chores","mun-DAYN"],["novel","new / original","a novel approach","NOV-ul"],
+ ["obsolete","outdated","an obsolete tool","ob-suh-LEET"],["viable","workable","a viable plan","VY-uh-bul"],
+ ["intrinsic","essential / inner","intrinsic value","in-TRIN-zik"],["holistic","whole-picture","a holistic view","hoh-LIS-tik"],
+ ["candor","honesty / frankness","refreshing candor","KAN-der"],["plausible","believable","a plausible story","PLAW-zih-bul"],
+ ["inherent","built-in","an inherent flaw","in-HAIR-ent"],["paramount","most important","safety is paramount","PAIR-uh-mownt"],
+ ["superfluous","more than needed","superfluous words","soo-PER-floo-us"],["galvanize","spur to action","galvanize the team","GAL-vuh-nize"],
+ ["scrutinize","examine closely","scrutinize the data","SKROO-tih-nize"],["mitigate","reduce / soften","mitigate the risk","MIT-ih-gate"],
+ ["meander","wander / ramble","the talk meandered","mee-AN-der"],["candidly","honestly","candidly, it failed","KAN-did-lee"],
+ ["pervasive","spread everywhere","a pervasive habit","per-VAY-siv"],["fleeting","very brief","a fleeting moment","FLEE-ting"],
+ ["incumbent","current market leader","beat the incumbent","in-KUM-bent"],["margin","profit per sale","a thin margin","MAR-jin"],
+ ["liquidity","cash on hand","low liquidity","lih-KWID-ih-tee"],["attrition","gradual loss","customer attrition","uh-TRISH-un"],
+ ["overhead","running costs","low overhead","OH-ver-hed"],["runway","months of cash left","a 6-month runway","RUN-way"],
+ ["valuation","what it's worth","a high valuation","val-yoo-AY-shun"],["churn","rate customers leave","high churn","churn"],
+ ["moat","durable advantage","a wide moat","moht"],["scalable","grows cheaply","a scalable model","SKAY-luh-bul"],
+ ["bottleneck","the slow point","find the bottleneck","BOT-ul-nek"],["benchmark","standard to beat","an industry benchmark","BENCH-mark"],
+ ["acquisition","buying a company","an acquisition","ak-wih-ZISH-un"],["equity","ownership share","10% equity","EK-wih-tee"],
+ ["dividend","payout to owners","a dividend","DIV-ih-dend"],["pivot","change direction","a sharp pivot","PIV-ut"],
+ ["traction","early proof it works","real traction","TRAK-shun"],["retention","keeping customers","high retention","ree-TEN-shun"],
+ ["proprietary","owned / exclusive","proprietary data","pruh-PRY-uh-tair-ee"],["commoditized","turned cheap / generic","a commoditized market","kuh-MOD-ih-tized"],
+ ["latency","delay / lag","low latency","LAY-ten-see"],["bandwidth","capacity to handle","limited bandwidth","BAND-width"],
+ ["deprecated","retired / discouraged","a deprecated method","DEP-rih-kay-ted"],["asynchronous","not waiting in line","an asynchronous task","ay-SIN-kruh-nus"],
+ ["refactor","rewrite cleaner, same behavior","refactor the code","ree-FAK-ter"],["abstraction","hiding detail","a clean abstraction","ab-STRAK-shun"],
+ ["deterministic","same input, same output","a deterministic result","dih-ter-mih-NIS-tik"],["concurrency","many things at once","handle concurrency","kun-KUR-en-see"],
+ ["throughput","amount processed","high throughput","THROO-poot"],["payload","the actual data sent","the JSON payload","PAY-lohd"],
+ ["endpoint","an API address","hit the endpoint","END-point"],["regression","a re-broken feature","a regression bug","ree-GRESH-un"],
+ ["heuristic","a rule of thumb","a useful heuristic","hyoo-RIS-tik"],["recursion","defined by itself","solve with recursion","ree-KUR-zhun"],
+ ["immutable","can't be changed","an immutable record","ih-MYOO-tuh-bul"],["sandbox","safe isolated space","run it in a sandbox","SAND-boks"],
+ ["telemetry","remote measurements","app telemetry","tuh-LEM-ih-tree"],["provision","set up / supply","provision a server","pruh-VIZH-un"],
+ ["idempotent","same result if repeated","an idempotent call","eye-DEM-puh-tent"],["scalability","ability to grow","good scalability","skay-luh-BIL-ih-tee"],
+ ["dichotomy","split into two","a false dichotomy","dy-KOT-uh-mee"],["corollary","a follow-on result","a useful corollary","KOR-uh-lair-ee"],
+ ["premise","starting assumption","a flawed premise","PREM-iss"],["fallacy","a reasoning error","a logical fallacy","FAL-uh-see"],
+ ["paradox","seems contradictory","an apparent paradox","PAIR-uh-doks"],["axiom","self-evident truth","a basic axiom","AK-see-um"],
+ ["empirical","based on evidence","empirical proof","em-PEER-ih-kul"],["anecdotal","based on a story, not data","anecdotal evidence","an-ek-DOH-tul"],
+ ["extrapolate","extend a trend","extrapolate the curve","ek-STRAP-uh-late"],["juxtapose","place side by side","juxtapose the two","JUK-stuh-pohz"],
+ ["ostensible","apparent on the surface","the ostensible reason","oss-TEN-sih-bul"],["tantamount","equivalent to","tantamount to quitting","TAN-tuh-mownt"],
+ ["egregious","shockingly bad","an egregious error","ee-GREE-jus"],["meticulousness","careful thoroughness","sheer meticulousness","meh-TIK-yoo-lus-ness"],
+ ["disparity","a gap / difference","a wide disparity","dih-SPAIR-ih-tee"],["catalyst","a trigger for change","the catalyst","KAT-uh-list"],
+ ["paradigm","a model / framework","a paradigm shift","PAIR-uh-dime"],["dogma","unquestioned belief","industry dogma","DOG-muh"],
+ ["visceral","gut-level","a visceral reaction","VISS-er-ul"],["innate","born with it","an innate talent","ih-NAYT"],
+ ["pragmatism","practicality","ruthless pragmatism","PRAG-muh-tiz-um"],["nuance","a fine distinction","miss the nuance","NOO-ahns"]
+);
+CONCEPTS.push(
+ {t:"Survivorship bias",a:"You only see the winners — the failures are invisible, so you overrate the odds.",dom:"stats"},
+ {t:"Comparative advantage",a:"Do what you give up least to do; trade for the rest. Why specialization wins.",dom:"econ"},
+ {t:"Diminishing returns",a:"Each extra unit of effort buys less than the last. Know when to stop.",dom:"econ"},
+ {t:"Game theory",a:"Your best move depends on their move — smart choices account for the other player.",dom:"thinking"},
+ {t:"Prisoner's dilemma",a:"Both betray when cooperating would win — distrust makes everyone worse off.",dom:"thinking"},
+ {t:"Pareto principle (80/20)",a:"Most results come from a few causes. Find the vital few; ignore the trivial many.",dom:"business"},
+ {t:"Black swan",a:"A rare, huge-impact, unpredictable event. Plan for fragility, not forecasts.",dom:"stats"},
+ {t:"Regression to the mean",a:"Extremes are usually followed by averages. Don't over-read a streak.",dom:"stats"},
+ {t:"Confirmation bias",a:"You notice what agrees with you. Actively hunt the disconfirming case.",dom:"thinking"},
+ {t:"Anchoring",a:"The first number sticks and skews everything after it. Set the anchor or reset it.",dom:"thinking"},
+ {t:"Loss aversion",a:"Losing $100 hurts ~2x more than gaining $100 feels good. It distorts choices.",dom:"thinking"},
+ {t:"Economies of scale",a:"Cost per unit drops as volume rises — why big can undercut small.",dom:"econ"},
+ {t:"Switching costs",a:"The pain of leaving locks customers in even when rivals are better.",dom:"business"},
+ {t:"Flywheel",a:"Each turn makes the next easier — slow to start, hard to stop once spinning.",dom:"business"},
+ {t:"Activation energy",a:"The push needed to start. Lower it and behavior changes.",dom:"science"},
+ {t:"Emergence",a:"Simple parts, complex whole — the result is in none of the pieces (ants, markets, minds).",dom:"science"},
+ {t:"Homeostasis",a:"A system holding itself steady by self-correcting (bodies, thermostats, economies).",dom:"science"},
+ {t:"Bayesian updating",a:"Adjust belief by how surprising the evidence is. Strong prior + weak evidence = small update.",dom:"stats"},
+ {t:"Correlation vs causation",a:"Two things moving together doesn't mean one caused the other.",dom:"stats"},
+ {t:"Sampling bias",a:"A non-representative sample gives a confident wrong answer (your feed isn't the world).",dom:"stats"},
+ {t:"Technical debt",a:"Shortcuts now that charge interest later — cheap to take on, costly to ignore.",dom:"tech"},
+ {t:"Race condition",a:"Two processes collide on timing and corrupt the result. Order isn't guaranteed.",dom:"tech"},
+ {t:"Single point of failure",a:"One part whose death kills the whole system. Find it, remove it.",dom:"tech"},
+ {t:"Premature optimization",a:"Tuning before you know what's slow — effort on the wrong thing.",dom:"tech"},
+ {t:"Minimum viable product",a:"The smallest thing that tests the real question. Ship to learn, not to impress.",dom:"business"},
+ {t:"Product-market fit",a:"When the market pulls the product out of you — you feel it, you're not pushing.",dom:"business"},
+ {t:"Total addressable market",a:"The whole prize if you won everyone; the honest number is what you can capture.",dom:"business"},
+ {t:"Moral hazard",a:"Shielded from the downside, people take more risk (bailouts, insurance).",dom:"econ"},
+ {t:"Tragedy of the commons",a:"Shared resource, selfish incentives — everyone overuses it and it collapses.",dom:"econ"},
+ {t:"Incentives",a:"Show me the incentive and I'll show you the outcome. Behavior follows rewards.",dom:"econ"},
+ {t:"Via negativa",a:"Improve by removing, not adding. Often the smartest move is subtraction.",dom:"thinking"},
+ {t:"Chesterton's fence",a:"Don't remove a rule until you understand why it was put there.",dom:"thinking"},
+ {t:"Map vs territory",a:"The model isn't the reality — useful maps still leave things out.",dom:"thinking"},
+ {t:"Inversion",a:"Solve forward by working backward — ask how to fail, then avoid that.",dom:"thinking"},
+ {t:"Circle of competence",a:"Know the edge of what you actually understand, and stay near it.",dom:"thinking"},
+ {t:"Hyperbolic discounting",a:"We massively overvalue now vs later — why we procrastinate and overspend.",dom:"thinking"},
+ {t:"Lindy effect",a:"For ideas/tech, the longer it's survived, the longer it's likely to last.",dom:"thinking"}
+);
+NUMBERS.push(
+ {q:"How many minutes in a week?",a:"7×24×60 = 10,080. ~10k."},
+ {q:"A $49/mo product, 2,000 customers — yearly revenue?",a:"49×2000≈$98k/mo ×12 ≈ $1.18M/yr."},
+ {q:"You grow 5%/month — roughly how much in a year?",a:"1.05^12 ≈ 1.8× — about +80%."},
+ {q:"50k visits/mo, 3% convert, $20 each — monthly revenue?",a:"50,000×3%=1,500 ×$20=$30k/mo."},
+ {q:"Estimate seconds alive at age 22.",a:"22×365×86,400 ≈ 690 million. ~700M."},
+ {q:"What's 15% of 240?",a:"10%=24, +5%=12 → 36."},
+ {q:"Double money at 8%/yr — how many years?",a:"Rule of 72: 72/8 = 9 years."},
+ {q:"Estimate heartbeats per day.",a:"~70/min ×60×24 ≈ 100,800. ~100k."},
+ {q:"10,000 see it, 20% click, 10% of those buy — buyers?",a:"10,000×0.2=2,000 ×0.1=200."},
+ {q:"You save $5/day — how much in a year?",a:"5×365 ≈ $1,825. ~$1.8k."},
+ {q:"20% off, then 20% off again — total discount?",a:"0.8×0.8=0.64 → 36% off (not 40%)."},
+ {q:"$0.003 per API call, 50/day — yearly cost?",a:"0.003×50×365 ≈ $55/yr."},
+ {q:"180-seat plane at 85% full — passengers?",a:"180×0.85 ≈ 153."},
+ {q:"LTV at $30/mo, 18-month avg stay?",a:"30×18 = $540."},
+ {q:"What's 7 × 12 × 5?",a:"7×12=84 ×5=420."},
+ {q:"$2B market, you take 0.5% — revenue?",a:"2,000M×0.005 = $10M."},
+ {q:"A SaaS at $99/yr wants $1M ARR — how many customers?",a:"1,000,000/99 ≈ 10,100."},
+ {q:"Estimate words in a 300-page book.",a:"~300×300 ≈ 90,000."},
+ {q:"Read 40 pages/day — days for a 320-page book?",a:"320/40 = 8 days."},
+ {q:"Estimate the world population (2025).",a:"~8 billion."},
+ {q:"Convert 3.5 hours to minutes.",a:"3.5×60 = 210."},
+ {q:"Fermi: gas stations in a city of 1M?",a:"~1 per 5,000 people ≈ 200 stations."},
+ {q:"$25/mo × 400 subs — MRR and ARR?",a:"MRR $10k, ARR $120k."},
+ {q:"What's 12.5% as a fraction?",a:"1/8."}
+);
+SPAR_TOPICS.push(
+ "Money can buy happiness","Talent is overrated — effort wins","Privacy is already dead and that's fine",
+ "College degrees will be worthless in 10 years","AI art is real art","Most advice is survivorship bias",
+ "Hustle culture is harmful","Crypto is mostly speculation","Nuclear is the cleanest path to green energy",
+ "Social media should be age-restricted like alcohol","Free will is an illusion","Billionaires shouldn't exist",
+ "Standardized testing should be abolished","Everyone should learn to code","The 4-day work week should be standard",
+ "Self-driving cars will be safer than humans","Reading fiction beats non-fiction for the mind","Failure is overrated as a teacher",
+ "Specialists beat generalists","Boredom is necessary for creativity","Long-form beats short-form content","Access is replacing ownership"
+);
 
 //= ===================== HELPERS =====================
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
