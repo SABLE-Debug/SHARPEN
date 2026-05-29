@@ -196,6 +196,21 @@
     .msg.typing i,.thinking-dots i{animation:none;opacity:.6}
     .msg.typing i:nth-child(2){opacity:.85} .msg.typing i:nth-child(3){opacity:1}
   }
+  /*= ===== TRAIN MENU + tab temperature (Pass 1) ===== */
+  :root{--temp-train:#FF6A00;--temp-learn:#4F8FFF;--temp-words:#5fd08a;--temp-spar:#e7b84a;--temp-prog:#8B95A8;--tab-temp:var(--temp-train);--orange-line:rgba(255,106,0,.30)}
+  .kicker{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--tab-temp)}
+  .display{font-family:var(--serif);font-weight:600;font-size:clamp(30px,10vw,46px);line-height:1;letter-spacing:.5px}
+  .display em{font-style:italic;color:var(--orange-soft)}
+  .menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
+  .ex{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px;text-align:left;color:var(--ink);width:100%;cursor:pointer;position:relative;transition:transform .14s var(--ease-snap),border-color .18s var(--ease-soft)}
+  .ex.wide{grid-column:span 2}
+  .ex:active{transform:translateY(1px) scale(.985)}
+  .ex .ex-sn{position:absolute;top:11px;right:12px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em}
+  .ex .ex-ic{width:26px;height:26px;color:var(--tab-temp)} .ex .ex-ic svg{width:100%;height:100%;display:block}
+  .ex .ex-name{font-family:var(--serif);font-size:18px;font-weight:600;line-height:1.05} .ex .ex-name em{font-style:italic;color:var(--orange-soft)}
+  .ex .ex-trains{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mid)} .ex .ex-trains b{color:var(--tab-temp);font-weight:400}
+  @media(hover:hover){.ex:hover{border-color:var(--orange-line);transform:translateY(-2px)}}
+  nav.tabs button.on .ic{color:var(--tab-temp)}
 </style>
 </head>
 <body>
@@ -214,25 +229,47 @@
     <div class="mono" style="font-size:9px;letter-spacing:.22em;color:var(--orange);text-transform:uppercase;margin-bottom:1px">SANKALPA · DAILY EDGE</div>
     <h1 style="line-height:1">Daily <em>Sharpen</em></h1>
   </div>
-  <div class="meta" id="hdrmeta">—</div>
+  <button id="gearBtn" class="qmark" style="width:30px;height:30px;font-size:15px;margin-left:auto" aria-label="Settings" onclick="go('set')">⚙</button>
+  <div class="meta" id="hdrmeta" style="margin-left:10px">—</div>
 </div></header>
 
-<!-- ============ TODAY ============ -->
-<section class="view on" id="v-today"><div class="wrap">
-  <div class="card">
-    <div class="lbl">Today · your daily loop</div>
-    <h2 id="t-greet">Sharpen the edge</h2>
-    <p class="goal">Pick a length and run the loop. Every exercise tells you what to do and why. <b>Short is the daily habit</b> — the long modes are for when you want to go deep.</p>
-    <div class="row" id="lenpick" style="margin-bottom:12px">
-      <button class="pill on" data-min="8">Daily · ~8 min</button>
-      <button class="pill" data-min="20">Deep · 20 min</button>
-      <button class="pill" data-min="60">Deep · 1 hr</button>
-      <button class="pill" data-min="180">Deep · 3 hr</button>
-    </div>
-    <button class="btn" id="startBtn">Start today's loop ▸</button>
-    <p class="small" style="margin:10px 0 0">Streak <span class="stat" id="streak">0</span> days · loop fills the thinking Claude can't: recall, real-time reasoning, articulation, vocabulary.</p>
+<!-- ============ TRAIN ============ -->
+<section class="view on" id="v-train"><div class="wrap">
+  <div class="card dither">
+    <div class="kicker">Daily Edge · the thinking Claude can't build for you</div>
+    <h2 class="display" style="margin:4px 0 2px">Train the <em>edge</em>.</h2>
+    <p class="goal">Pick a single drill below, or run a mixed loop. Each card says what it trains. Go as long as you want — stop whenever.</p>
+    <button class="btn pulse" id="startBtn">Run a mixed loop ▸</button>
+    <p class="small" style="margin:10px 0 0">Streak <span class="stat" id="streak">0</span> days</p>
+  </div>
+  <div class="menu">
+    <button class="ex wide" data-drill="explain"><span class="ex-sn">01</span><span class="ex-ic"><svg><use href="#m-explain"/></svg></span><span class="ex-name">Explain <em>it</em></span><span class="ex-trains">trains · <b>understanding + articulation</b></span></button>
+    <button class="ex" data-drill="quick"><span class="ex-sn">02</span><span class="ex-ic"><svg><use href="#m-recall"/></svg></span><span class="ex-name">Quick-fire</span><span class="ex-trains">trains · <b>recall</b></span></button>
+    <button class="ex" data-drill="connect"><span class="ex-sn">03</span><span class="ex-ic"><svg><use href="#m-connect"/></svg></span><span class="ex-name">Connect <em>two</em></span><span class="ex-trains">trains · <b>synthesis</b></span></button>
+    <button class="ex" data-drill="apply3"><span class="ex-sn">04</span><span class="ex-ic"><svg><use href="#m-connect"/></svg></span><span class="ex-name">3 domains</span><span class="ex-trains">trains · <b>cross-domain transfer</b></span></button>
+    <button class="ex" data-drill="model"><span class="ex-sn">05</span><span class="ex-ic"><svg><use href="#m-sowhat"/></svg></span><span class="ex-name">Mental model</span><span class="ex-trains">trains · <b>your lens library</b></span></button>
+    <button class="ex" data-drill="first"><span class="ex-sn">06</span><span class="ex-ic"><svg><use href="#m-compress"/></svg></span><span class="ex-name">First principles</span><span class="ex-trains">trains · <b>deep reasoning</b></span></button>
+    <button class="ex wide" data-drill="sowhat"><span class="ex-sn">07</span><span class="ex-ic"><svg><use href="#m-sowhat"/></svg></span><span class="ex-name">So <em>what?</em></span><span class="ex-trains">trains · <b>relevance + transfer to your work</b></span></button>
+    <button class="ex" data-drill="compress"><span class="ex-sn">08</span><span class="ex-ic"><svg><use href="#m-compress"/></svg></span><span class="ex-name">Compress</span><span class="ex-trains">trains · <b>precision</b></span></button>
+    <button class="ex" data-drill="analogy"><span class="ex-sn">09</span><span class="ex-ic"><svg><use href="#m-connect"/></svg></span><span class="ex-name">Analogy</span><span class="ex-trains">trains · <b>rhetoric</b></span></button>
+    <button class="ex" data-drill="numbers"><span class="ex-sn">10</span><span class="ex-ic"><svg><use href="#m-numbers"/></svg></span><span class="ex-name">Numbers</span><span class="ex-trains">trains · <b>quantitative</b></span></button>
+    <button class="ex" data-drill="reverse"><span class="ex-sn">11</span><span class="ex-ic"><svg><use href="#m-word"/></svg></span><span class="ex-name">Reverse diction</span><span class="ex-trains">trains · <b>word recall</b></span></button>
+    <button class="ex" data-drill="explain3"><span class="ex-sn">12</span><span class="ex-ic"><svg><use href="#m-explain"/></svg></span><span class="ex-name">Explain 3 levels</span><span class="ex-trains">trains · <b>depth + range</b></span></button>
+    <button class="ex wide" data-drill="word"><span class="ex-sn">13</span><span class="ex-ic"><svg><use href="#m-word"/></svg></span><span class="ex-name">Deploy a <em>word</em></span><span class="ex-trains">trains · <b>vocabulary in real use</b></span></button>
   </div>
   <div id="sessionArea"></div>
+</div></section>
+
+<!-- ============ LEARN ============ -->
+<section class="view" id="v-learn"><div class="wrap">
+  <div class="card tight">
+    <div class="lbl">Learn · paste anything, own it forever</div>
+    <p class="todo">Drop in a term, concept, or paragraph from <b>any field</b> — law, aviation, business, a textbook. It explains it simply, then folds it into your drills + spaced repetition so it sticks for good.</p>
+    <div id="learnKeyWarn" class="warnbox" style="display:none">Learn needs your API key (it reads + explains your text). Add it via the ⚙ gear ▸ — about a third of a cent per item.</div>
+    <textarea id="learnIn" placeholder="Paste a concept, term, or passage you want to understand + remember…" style="min-height:130px"></textarea>
+    <button class="btn sm" id="learnGo" style="margin-top:9px">Learn it ▸</button>
+    <div id="learnOut"></div>
+  </div>
 </div></section>
 
 <!-- ============ SPAR ============ -->
@@ -320,11 +357,11 @@
 
 <!-- ============ TABBAR ============ -->
 <nav class="tabs">
-  <button data-v="today" class="on"><span class="ic">◎</span>Today</button>
-  <button data-v="spar"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-spar"/></svg></span>Spar</button>
+  <button data-v="train" class="on"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-recall"/></svg></span>Train</button>
+  <button data-v="learn"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-explain"/></svg></span>Learn</button>
   <button data-v="words"><span class="ic">▦</span>Words</button>
+  <button data-v="spar"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-spar"/></svg></span>Spar</button>
   <button data-v="prog"><span class="ic">▲</span>Progress</button>
-  <button data-v="set"><span class="ic">⚙</span>Settings</button>
 </nav>
 
 <!-- ============ ONBOARDING ============ -->
@@ -649,15 +686,52 @@ function drillWord(){
     goal:`Vocabulary in USE, not memorised — the only kind that shows up in how you speak.`,
     answer:`“${w[0]}” : ${w[1]} — e.g. ${w[2]}`, id:'w_'+w[0], target:[w[0]]};
 }
-const DRILLS=[drillExplain,drillQuick,drillConnect,drillCompress,drillNumbers,drillSoWhat,drillWord];
+function drillApply3(){
+  const c=rnd(CONCEPTS);
+  return {lbl:"Apply to 3 domains", todo:`Take <b>“${c.t}”</b> and apply it to THREE different fields — e.g. business, tech, everyday life. One line each.`,
+    goal:`Trains cross-domain transfer — the skill that puts you ahead in any field.`,
+    answer:`Strong answers find the same underlying mechanism showing up in three different costumes.`, id:'a3_'+c.t, target:[]};
+}
+function drillModel(){
+  const c=rnd(CONCEPTS);
+  return {lbl:"Mental model", todo:`Use <b>“${c.t}”</b> as a lens on a real decision you're facing right now. How does it change how you see it?`,
+    goal:`Builds your model library — more lenses = faster, sharper reasoning anywhere.`,
+    answer:`A good answer uses the model as a tool on a concrete situation, not just restates it.`, id:'mm_'+c.t, target:[]};
+}
+function drillFirstPrinciples(){
+  const c=rnd(CONCEPTS);
+  return {lbl:"First principles", todo:`Break <b>“${c.t}”</b> down to its most basic truths — what's undeniably true underneath? Then rebuild it from those.`,
+    goal:`Trains first-principles reasoning — how you understand fast instead of memorising.`,
+    answer:`Strong answers strip assumptions and rebuild from base facts, not analogies.`, id:'fp_'+c.t, target:[]};
+}
+function drillReverseDiction(){
+  const w=rnd(WORDS);
+  return {lbl:"Reverse diction", todo:`What's a sharper, single word for <b>“${w[1]}”</b>? (one's in your deck — pull it from memory)`,
+    goal:`Trains diction recall — producing the precise word, not just recognising it.`,
+    answer:`“${w[0]}” — ${w[1]}. e.g. ${w[2]}`, id:'rd_'+w[0], target:[w[0]]};
+}
+function drillAnalogy(){
+  const c=rnd(CONCEPTS);
+  return {lbl:"Analogy", todo:`Explain <b>“${c.t}”</b> using an analogy from a totally different field — cooking, sport, nature, anything.`,
+    goal:`Trains understanding + rhetoric — analogy is how sharp people make ideas land.`,
+    answer:`The best analogies map the structure, not just a surface feature.`, id:'an_'+c.t, target:[]};
+}
+function drillExplain3(){
+  const c=rnd(CONCEPTS);
+  return {lbl:"Explain 3 levels", todo:`Explain <b>“${c.t}”</b> three ways: to a 5-year-old, to a smart peer, and to an expert.`,
+    goal:`Trains register flexibility + depth — you only really know it if you can pitch it at any level.`,
+    answer:`${c.t}: ${c.a}`, id:'e3_'+c.t, target:[]};
+}
+const DRILLS=[drillExplain,drillQuick,drillConnect,drillCompress,drillNumbers,drillSoWhat,drillWord,drillApply3,drillModel,drillFirstPrinciples,drillReverseDiction,drillAnalogy,drillExplain3];
 
 let session={queue:[],i:0};
-function startSession(min){
-  const count = min<=8?5: min<=20?10: min<=60?22:50;
+function startSession(count){
+  count=count||10;
   session={queue:Array.from({length:count},()=>rnd(DRILLS)()), i:0};
   bumpStreak(); renderDrill();
   $('#sessionArea').scrollIntoView({behavior:'smooth'});
 }
+function startDrill(factory){ if(!factory)return; session={queue:[factory()],i:0}; bumpStreak(); renderDrill(); $('#sessionArea').scrollIntoView({behavior:'smooth'}); }
 function renderDrill(){
   const a=$('#sessionArea');
   if(session.i>=session.queue.length){
@@ -802,6 +876,30 @@ async function sparDebrief(){
   $('#sparInputWrap').style.display='none'; $('#sparStart').style.display='block'; $('#sparStance').style.display='none';
 }
 
+//= ===================== LEARN (paste anything) =====================
+async function learnIt(){
+  const t=$('#learnIn').value.trim(); if(!t)return;
+  if(canSpend()){const w=$('#learnKeyWarn');w.style.display='block';w.classList.remove('shake');void w.offsetWidth;w.classList.add('shake');return;}
+  const btn=$('#learnGo'); btn.disabled=true; btn.textContent='learning…';
+  $('#learnOut').innerHTML='<div class="fb"><span class="thinking-dots"><i>.</i><i>.</i><i>.</i></span> reading + simplifying…</div>';
+  const sys="Turn the user's pasted material into compact study items. Return STRICT JSON only — no prose, no code fences: {\"title\":\"short name\",\"simple\":\"one plain-English sentence a 12-year-old gets\",\"words\":[[\"term\",\"simple meaning\"]],\"concept\":\"a 1-2 sentence model answer for recall\"}. Max 3 entries in words. Keep everything tight.";
+  try{
+    const out=await callHaiku(sys,[{role:'user',content:t.slice(0,4000)}],500);
+    let j=null; try{ j=JSON.parse(out.replace(/```json|```/g,'').trim()); }catch(e){}
+    if(!j||!j.title){ $('#learnOut').innerHTML=`<div class="fb"><b>Explanation:</b><br>${esc(out)}</div>`; }
+    else{
+      const concept={t:j.title,a:j.concept||j.simple,dom:'mine'}; CONCEPTS.push(concept);
+      const newWords=(j.words||[]).filter(w=>Array.isArray(w)&&w[0]).map(w=>[w[0],w[1]||'','(from your notes)','']);
+      newWords.forEach(w=>WORDS.push(w));
+      const mine=LS.get('mine',{c:[],w:[]}); mine.c.push(concept); newWords.forEach(w=>mine.w.push(w)); LS.set('mine',mine);
+      grade('c_'+j.title,false);
+      $('#learnOut').innerHTML=`<div class="fb"><b>${esc(j.title)}</b><br>${esc(j.simple)}<br><br><span class="stat">✓ Added</span> to your drills + spaced repetition — it'll resurface in your loop to lock it in.${newWords.length?'<br>New words: '+newWords.map(w=>esc(w[0])).join(', '):''}</div>`;
+      $('#learnIn').value='';
+    }
+  }catch(e){ $('#learnOut').innerHTML=`<div class="warnbox shake">${esc(e.message)}</div>`; }
+  btn.disabled=false; btn.textContent='Learn it ▸';
+}
+
 //= ===================== WORDS VIEW =====================
 function wordsToday(){
   const dk=dayKey();
@@ -861,9 +959,11 @@ function submitReview(i){
 
 //= ===================== NAV + UI =====================
 function go(v){
+  document.documentElement.style.setProperty('--tab-temp',{train:'var(--temp-train)',learn:'var(--temp-learn)',words:'var(--temp-words)',spar:'var(--temp-spar)',prog:'var(--temp-prog)',set:'var(--temp-prog)'}[v]||'var(--temp-train)');
   $$('.view').forEach(x=>x.classList.remove('on')); $('#v-'+v).classList.add('on');
   $$('nav.tabs button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   if(v==='words')renderWords(); if(v==='prog')renderProg();
+  if(v==='learn')$('#learnKeyWarn').style.display=canSpend()&&!S.key?'block':'none';
   if(v==='spar'){
     $('#sparKeyWarn').style.display=canSpend()&&!S.key?'block':'none';
     if($('#sparStart').style.display!=='none')$('#sparStance').style.display='none';
@@ -906,10 +1006,13 @@ function renderOnb(){$('#onbTitle').textContent=ONB[onbI][0];$('#onbBody').textC
 //= ===================== BOOT =====================
 function boot(){
   LS.set('seed', LS.get('seed', Math.floor(Math.random()*9999)));
+  const _mine=LS.get('mine',{c:[],w:[]}); (_mine.c||[]).forEach(c=>CONCEPTS.push(c)); (_mine.w||[]).forEach(w=>WORDS.push(w));
   // events
   $$('nav.tabs button').forEach(b=>b.onclick=()=>go(b.dataset.v));
-  $$('#lenpick .pill').forEach(p=>p.onclick=()=>{$$('#lenpick .pill').forEach(x=>x.classList.remove('on'));p.classList.add('on')});
-  $('#startBtn').onclick=()=>{const m=+$('#lenpick .pill.on').dataset.min;startSession(m)};
+  $('#startBtn')&&($('#startBtn').onclick=()=>startSession(10));
+  const DMAP={explain:drillExplain,quick:drillQuick,connect:drillConnect,compress:drillCompress,numbers:drillNumbers,sowhat:drillSoWhat,word:drillWord,apply3:drillApply3,model:drillModel,first:drillFirstPrinciples,reverse:drillReverseDiction,analogy:drillAnalogy,explain3:drillExplain3};
+  $$('.ex[data-drill]').forEach(el=>el.onclick=()=>startDrill(DMAP[el.dataset.drill]));
+  $('#learnGo')&&($('#learnGo').onclick=learnIt);
   $('#sparGo').onclick=()=>{const t=$('#sparTopic').value.trim()||rnd(SPAR_TOPICS);sparBegin(t)};
   $('#sparRnd').onclick=()=>{const t=rnd(SPAR_TOPICS);$('#sparTopic').value=t;sparBegin(t)};
   $('#sparSend').onclick=sparSend;
