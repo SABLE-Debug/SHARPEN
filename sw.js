@@ -1,5 +1,5 @@
 // Sharpen — service worker (offline-first shell)
-const CACHE = 'sharpen-v10';
+const CACHE = 'sharpen-v11';
 const ASSETS = ['./index.html', './icon.svg', './manifest.json', './assets/kalpa.webp', './assets/veil.webp',
   './assets/bg-learn.webp', './assets/bg-words.webp', './assets/bg-spar.webp', './assets/bg-prog.webp'];
 self.addEventListener('install', e => {
