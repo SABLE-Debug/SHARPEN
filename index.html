@@ -197,7 +197,7 @@
     .msg.typing i:nth-child(2){opacity:.85} .msg.typing i:nth-child(3){opacity:1}
   }
   /*= ===== TRAIN MENU + tab temperature (Pass 1) ===== */
-  :root{--temp-train:#FF6A00;--temp-learn:#4F8FFF;--temp-words:#5fd08a;--temp-spar:#e7b84a;--temp-prog:#8B95A8;--tab-temp:var(--temp-train);--orange-line:rgba(255,106,0,.30)}
+  :root{--temp-train:#FF6A00;--temp-learn:#4F8FFF;--temp-words:#5fd08a;--temp-spar:#e7b84a;--temp-prog:#8B95A8;--tab-temp:var(--temp-train);--orange-line:rgba(255,106,0,.30);--orange-glow:rgba(255,106,0,.55);--orange-dim:rgba(255,106,0,.14);--card-top:#1a1a1a;--card-bot:#121212;--bevel-hi:rgba(255,255,255,.05);--bevel-lo:rgba(0,0,0,.45)}
   .kicker{font-family:var(--mono);font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--tab-temp)}
   .display{font-family:var(--serif);font-weight:600;font-size:clamp(30px,10vw,46px);line-height:1;letter-spacing:.5px}
   .display em{font-style:italic;color:var(--orange-soft)}
@@ -211,9 +211,63 @@
   .ex .ex-trains{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mid)} .ex .ex-trains b{color:var(--tab-temp);font-weight:400}
   @media(hover:hover){.ex:hover{border-color:var(--orange-line);transform:translateY(-2px)}}
   nav.tabs button.on .ic{color:var(--tab-temp)}
+
+  /*= ========= LIFE LAYER (Pass 2) — depth · warmth · ambient motion ========= */
+  body{background:transparent}
+  .ambient{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;background:var(--bg);contain:strict}
+  .ambient::before{content:"";position:absolute;width:130vmax;height:130vmax;left:-30vmax;top:-55vmax;
+    background:radial-gradient(circle at 50% 50%, var(--orange-dim), transparent 60%);opacity:.5;will-change:transform,opacity;animation:emberDrift 26s var(--ease-soft) infinite alternate}
+  .ambient::after{content:"";position:absolute;inset:-2px;background-image:var(--dither);background-size:3px 3px;opacity:.035;mix-blend-mode:screen;will-change:opacity;animation:ditherShimmer 7s steps(2,end) infinite}
+  @keyframes emberDrift{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(6vmax,4vmax,0) scale(1.08)}100%{transform:translate3d(-4vmax,7vmax,0) scale(1.04)}}
+  @keyframes ditherShimmer{0%,100%{opacity:.030}50%{opacity:.055}}
+  /* card material + raking top-light */
+  .card{background:linear-gradient(180deg,var(--card-top),var(--card-bot));box-shadow:0 1px 0 var(--bevel-hi) inset,0 -1px 0 var(--bevel-lo) inset,0 10px 30px -22px rgba(0,0,0,.9);position:relative;overflow:hidden;isolation:isolate}
+  .card::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--tab-temp),transparent);opacity:.28;z-index:2}
+  /* rich exercise tiles (override Pass-1 minimal) */
+  .ex{background:linear-gradient(180deg,var(--card-top),var(--card-bot));box-shadow:0 1px 0 var(--bevel-hi) inset,0 10px 26px -22px rgba(0,0,0,.9);isolation:isolate}
+  .ex::after{content:"";position:absolute;inset:0;z-index:-1;opacity:0;background:radial-gradient(120% 90% at 0% 0%, var(--orange-dim), transparent 55%);transition:opacity .22s var(--ease-soft)}
+  .ex:active::after{opacity:1}
+  .ex .ex-ic{transition:transform .2s var(--ease-snap)}
+  @media (hover:hover){.ex:hover{transform:translateY(-2px);border-color:var(--orange-line);box-shadow:0 1px 0 var(--bevel-hi) inset,0 16px 34px -20px rgba(0,0,0,.95),0 0 24px -12px var(--orange-glow)} .ex:hover::after{opacity:1} .ex:hover .ex-ic{transform:translateY(-1px)}}
+  .menu .ex{animation:exIn .4s var(--ease-out) both}
+  .menu .ex:nth-child(2){animation-delay:.04s}.menu .ex:nth-child(3){animation-delay:.08s}.menu .ex:nth-child(4){animation-delay:.12s}.menu .ex:nth-child(5){animation-delay:.16s}.menu .ex:nth-child(6){animation-delay:.2s}.menu .ex:nth-child(7){animation-delay:.24s}.menu .ex:nth-child(n+8){animation-delay:.28s}
+  @keyframes exIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
+  /* breathing accent dot on labels */
+  .lbl{display:flex;align-items:center;line-height:1.3}
+  .lbl::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--tab-temp);margin-right:8px;flex:none;animation:lblPulse 3.4s var(--ease-soft) infinite}
+  @keyframes lblPulse{0%,100%{box-shadow:0 0 0 0 var(--orange-glow);opacity:.9}50%{box-shadow:0 0 7px 1px var(--orange-glow);opacity:1}}
+  /* button material + idle sheen on hero CTA */
+  .btn{background:linear-gradient(180deg,var(--orange-soft),var(--orange));box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 8px 20px -10px var(--orange-glow);position:relative;overflow:hidden}
+  .btn.ghost{background:transparent;box-shadow:none}
+  .btn.pulse::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-50%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-18deg);animation:ctaSheen 4.5s var(--ease-soft) infinite;will-change:transform}
+  @keyframes ctaSheen{0%{left:-50%}55%,100%{left:130%}}
+  /* tab active = lit underline in section temp */
+  nav.tabs button{position:relative}
+  nav.tabs button.on::before{content:"";position:absolute;top:2px;left:50%;transform:translateX(-50%);width:22px;height:2px;border-radius:2px;background:var(--tab-temp);box-shadow:0 0 8px 0 var(--tab-temp);animation:tabGlow .4s var(--ease-out) both}
+  @keyframes tabGlow{from{opacity:0;width:0}to{opacity:1;width:22px}}
+  /* Kalpa */
+  .kalpa{display:flex;flex-direction:column;align-items:center;gap:10px;padding:30px 18px 6px}
+  .kalpa svg{width:84px;height:84px;color:var(--orange-soft)}
+  .kalpa .k-say{font-family:var(--serif);font-style:italic;font-size:17px;color:var(--mid);text-align:center;max-width:280px;line-height:1.35}
+  .kalpa .k-say b{color:var(--orange-soft);font-style:normal}
+  .k-core{transform-origin:center;animation:kalpaBreathe 5s var(--ease-soft) infinite}
+  .k-eye{animation:kalpaBlink 6.5s steps(1,end) infinite;transform-origin:44px 47px}
+  .k-spark{transform-origin:78px 30px;animation:kalpaSpark 3.2s var(--ease-soft) infinite}
+  @keyframes kalpaBreathe{0%,100%{transform:scale(1)}50%{transform:scale(1.04)}}
+  @keyframes kalpaBlink{0%,93%,100%{transform:scaleY(1)}96%{transform:scaleY(.1)}}
+  @keyframes kalpaSpark{0%,100%{opacity:.35;transform:scale(.85)}50%{opacity:1;transform:scale(1.1)}}
+  /* stance live edge + progress glow */
+  .stance{background:linear-gradient(180deg,#1d1611,#181109);box-shadow:0 1px 0 var(--bevel-hi) inset,0 10px 26px -22px #000;position:relative;overflow:hidden}
+  .stance::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--temp-spar);box-shadow:0 0 10px 0 var(--temp-spar);opacity:.7}
+  .big{text-shadow:0 0 22px var(--orange-dim)} .complete-stats .cs-n{text-shadow:0 0 18px var(--orange-dim)}
+  @media (prefers-reduced-motion:reduce){
+    .ambient::before,.ambient::after,.lbl::before,.btn.pulse::after,.k-core,.k-eye,.k-spark,nav.tabs button.on::before,.menu .ex{animation:none!important}
+    .ambient::before{opacity:.4}.ambient::after{opacity:.04}.k-eye{transform:none}
+  }
 </style>
 </head>
 <body>
+<div class="ambient" aria-hidden="true"></div>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><defs>
   <symbol id="m-explain" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square"><path d="M4 5h16v10H9l-4 4v-4H4z"/><path d="M8 9h8M8 12h5"/></g></symbol>
   <symbol id="m-recall" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="7.5"/><circle cx="12" cy="12" r="3.2"/></g><circle cx="12" cy="12" r="1.4" fill="currentColor"/></symbol>
@@ -223,6 +277,15 @@
   <symbol id="m-sowhat" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" stroke-linejoin="round"><path d="M5 6v7a3 3 0 0 0 3 3h9"/><path d="M14 12l4 4-4 4"/></g></symbol>
   <symbol id="m-word" viewBox="0 0 24 24"><g fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="square" stroke-linejoin="round"><rect x="4" y="11" width="11" height="9"/><path d="M9.5 11V6m0 0l-3 3m3-3l3 3"/><path d="M18 5h2M19 4v2"/></g></symbol>
   <symbol id="m-spar" viewBox="0 0 24 24"><path d="M12 3l8 16-8-4-8 4z" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><circle cx="12" cy="5" r="1.3" fill="currentColor"/></symbol>
+  <symbol id="kalpa" viewBox="0 0 100 100">
+    <g class="k-core">
+      <circle cx="50" cy="50" r="30" fill="none" stroke="currentColor" stroke-width="2"/>
+      <g fill="currentColor" opacity=".7"><rect x="58" y="54" width="3" height="3"/><rect x="64" y="58" width="3" height="3"/><rect x="60" y="62" width="3" height="3"/><rect x="54" y="64" width="3" height="3"/><rect x="66" y="50" width="3" height="3"/><rect x="62" y="46" width="3" height="3"/></g>
+      <path d="M42 34 A18 18 0 0 0 42 66 A24 24 0 0 1 42 34Z" fill="currentColor" opacity=".22"/>
+      <ellipse class="k-eye" cx="44" cy="47" rx="3.4" ry="4" fill="currentColor"/>
+    </g>
+    <circle class="k-spark" cx="78" cy="30" r="3" fill="currentColor"/>
+  </symbol>
 </defs></svg>
 <header class="dither"><div class="wrap">
   <div>
@@ -266,7 +329,7 @@
     <div class="lbl">Learn · paste anything, own it forever</div>
     <p class="todo">Drop in a term, concept, or paragraph from <b>any field</b> — law, aviation, business, a textbook. It explains it simply, then folds it into your drills + spaced repetition so it sticks for good.</p>
     <div id="learnKeyWarn" class="warnbox" style="display:none">Learn needs your API key (it reads + explains your text). Add it via the ⚙ gear ▸ — about a third of a cent per item.</div>
-    <textarea id="learnIn" placeholder="Paste a concept, term, or passage you want to understand + remember…" style="min-height:130px"></textarea>
+    <textarea id="learnIn" placeholder="A term like “CRM”, a concept, a question, or a whole passage — anything you want to understand + keep…" style="min-height:130px"></textarea>
     <button class="btn sm" id="learnGo" style="margin-top:9px">Learn it ▸</button>
     <div id="learnOut"></div>
   </div>
@@ -737,7 +800,7 @@ function renderDrill(){
   if(session.i>=session.queue.length){
     const s=sharpAvg();
     a.innerHTML=`<div class="card complete dither card-enter">
-      <svg class="mark lg" style="color:var(--orange);width:34px;height:34px" aria-hidden="true"><use href="#m-spar"/></svg>
+      <div class="kalpa" style="padding:0 0 2px"><svg viewBox="0 0 100 100" style="width:66px;height:66px"><use href="#kalpa"/></svg></div>
       <div class="lbl" style="margin-top:10px">Loop complete</div>
       <h2 style="font-size:30px">Edge <em>sharpened</em>.</h2>
       <div class="complete-stats">
@@ -917,7 +980,7 @@ function renderWords(){
   const remaining=day.ids.filter(i=>!done.ids.includes(i));
   const total=day.ids.length, doneN=total-remaining.length;
   if(!remaining.length){
-    $('#wordList').innerHTML=`<div class="empty"><div class="em-ic">🎯</div><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Back tomorrow for 20 new.</div></div>`;
+    $('#wordList').innerHTML=`<div class="empty"><div class="kalpa" style="padding:6px 0 0"><svg viewBox="0 0 100 100" style="width:58px;height:58px"><use href="#kalpa"/></svg></div><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Back tomorrow for 20 new.</div></div>`;
     return;
   }
   const i=remaining[0], w=WORDS[i];
@@ -968,7 +1031,7 @@ function go(v){
     $('#sparKeyWarn').style.display=canSpend()&&!S.key?'block':'none';
     if($('#sparStart').style.display!=='none')$('#sparStance').style.display='none';
     if(!$('#sparLog').children.length && $('#sparStart').style.display!=='none'){
-      $('#sparLog').innerHTML='<div class="empty"><div class="em-ic">🥊</div><div class="em-t">The ring is empty</div><div class="em-s">Pick a claim above and step in — your opponent takes the opposite side and pushes back, no warm-up.</div></div>';
+      $('#sparLog').innerHTML='<div class="empty"><div class="kalpa" style="padding:6px 0 0"><svg viewBox="0 0 100 100" style="width:58px;height:58px"><use href="#kalpa"/></svg></div><div class="em-t">The ring is empty</div><div class="em-s">Pick a claim above and step in — your opponent takes the opposite side and pushes back, no warm-up.</div></div>';
     }
   }
   window.scrollTo(0,0);
