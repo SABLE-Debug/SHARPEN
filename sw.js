@@ -1,7 +1,7 @@
 // Sharpen — service worker (offline-first shell)
-const CACHE = 'sharpen-v13';
-const ASSETS = ['./index.html', './icon.svg', './manifest.json', './assets/kalpa.webp', './assets/veil.webp',
-  './assets/bg-learn.webp', './assets/bg-words.webp', './assets/bg-spar.webp', './assets/bg-prog.webp'];
+const CACHE = 'sharpen-v14';
+const ASSETS = ['./index.html', './icon.svg', './manifest.json', './assets/veil.webp',
+  './assets/face-train.webp', './assets/face-learn.webp', './assets/face-words.webp', './assets/face-spar.webp', './assets/face-progress.webp'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));
 });

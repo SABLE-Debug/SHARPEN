@@ -282,6 +282,33 @@
   /* the temp hairline reads a touch stronger on hero panels */
   .card.hero-bg::before{opacity:.5}
 
+  /*= ===== 1-BIT FACE BANNER (Pass 4) — one figure per feature, designed as a system ===== */
+  /* Five pre-dithered 420x180 (21:9) head-and-shoulders portraits — black ground,
+     white stipple. The black bleeds to the frame edge, so the banner fuses with the
+     carbon panel with no visible seam. Full-bleed across the top of each hero card,
+     masthead label + heading sit beneath it. Pure 1-bit B/W — the --tab-temp accent
+     on the eyebrow + the seam hairline carries each feature's colour. iOS-safe. */
+  .face{position:relative;margin:-16px -16px 14px;line-height:0;isolation:isolate}
+  .card.tight .face{margin:-13px -14px 13px}           /* match .card.tight padding */
+  .face img{display:block;width:100%;height:auto;     /* full frame, natural aspect */
+    image-rendering:pixelated;image-rendering:crisp-edges;     /* keep the dither sharp on downscale */
+    -webkit-user-select:none;user-select:none;-webkit-user-drag:none;pointer-events:none}
+  /* temp-keyed seam hairline where the banner meets the panel body */
+  .face::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;z-index:2;
+    background:linear-gradient(90deg,transparent,var(--tab-temp),transparent);opacity:.55}
+  /* soft fade of the banner's lower edge into the panel — kills any hard bottom line
+     and lets the figure dissolve into the body, reinforcing the seamless read */
+  .face::before{content:"";position:absolute;left:0;right:0;bottom:0;height:38%;z-index:1;
+    background:linear-gradient(180deg,transparent,var(--panel));pointer-events:none}
+  /* when a face banner leads the hero, the panel's own top hairline is redundant */
+  .card.hero-bg:has(.face)::before,.card.hero-veil:has(.face)::before{opacity:0}
+  /* face inside an empty-state (Spar arena / Words all-done) — framed, centred,
+     echoes the old kalpa-img slot but in the 1-bit set */
+  .face-portrait{display:block;width:100%;max-width:300px;height:auto;margin:0 auto 14px;
+    border:1px solid var(--line);image-rendering:pixelated;image-rendering:crisp-edges;
+    -webkit-user-select:none;user-select:none;-webkit-user-drag:none}
+  @media (prefers-reduced-motion:reduce){.face img,.face-portrait{image-rendering:auto}}
+
   /*= ===== EDITORIAL RHYTHM (Pass 3) — break the uniform card-grid feel ===== */
   /* 1 · Section eyebrow + index — every view opens like a manual page, not a form.
         A hairline rule with a mono index on the right gives each tab a masthead. */
@@ -346,6 +373,7 @@
 <section class="view on" id="v-train"><div class="wrap">
   <div class="sec-head"><span class="sh-k">Train</span><span class="sh-x">01 / DAILY EDGE</span></div>
   <div class="card dither hero-veil">
+    <div class="face"><img src="./assets/face-train.webp" width="420" height="180" alt="" aria-hidden="true"/></div>
     <div class="kicker">Daily Edge · the thinking Claude can't build for you</div>
     <h2 class="display" style="margin:4px 0 2px">Train the <em>edge</em>.</h2>
     <p class="goal">Pick a single drill below, or run a mixed loop. Each card says what it trains. Go as long as you want — stop whenever.</p>
@@ -374,6 +402,7 @@
 <section class="view" id="v-learn"><div class="wrap">
   <div class="sec-head"><span class="sh-k">Learn</span><span class="sh-x">02 / INGEST</span></div>
   <div class="card tight hero-bg hero-learn dither">
+    <div class="face"><img src="./assets/face-learn.webp" width="420" height="180" alt="" aria-hidden="true"/></div>
     <div class="lbl">Learn · paste anything, own it forever</div>
     <p class="todo">Drop in a term, concept, or paragraph from <b>any field</b> — law, aviation, business, a textbook. It explains it simply, then folds it into your drills + spaced repetition so it sticks for good.</p>
     <div id="learnKeyWarn" class="warnbox" style="display:none">Learn needs your API key (it reads + explains your text). Add it via the ⚙ gear ▸ — about a third of a cent per item.</div>
@@ -387,6 +416,7 @@
 <section class="view" id="v-spar"><div class="wrap">
   <div class="sec-head"><span class="sh-k">Spar</span><span class="sh-x">04 / ARENA</span></div>
   <div class="card tight hero-bg hero-spar dither">
+    <div class="face"><img src="./assets/face-spar.webp" width="420" height="180" alt="" aria-hidden="true"/></div>
     <div class="lbl"><svg class="mark"><use href="#m-spar"/></svg>Spar · think on your feet, under push-back</div>
     <p class="todo">Pick a topic. An adversary argues the <i>opposite</i> and presses you. Defend, adapt, hold your ground — live, no editing your way out.</p>
     <p class="goal">Goal: trains the whole gap list at once — <b>real-time reasoning, recall, articulation, presence</b> — because here Claude disagrees instead of helping.</p>
@@ -414,6 +444,7 @@
 <section class="view" id="v-words"><div class="wrap">
   <div class="sec-head"><span class="sh-k">Words</span><span class="sh-x">03 / LEXICON</span></div>
   <div class="card tight hero-bg hero-words dither">
+    <div class="face"><img src="./assets/face-words.webp" width="420" height="180" alt="" aria-hidden="true"/></div>
     <div class="lbl">Words · 20 new a day, in plain format</div>
     <p class="todo">Read each upgrade word as <b>fancy : simple</b>, tap <b>say</b> to hear it, then mark <b>Got it</b> or <b>Review</b>. Today's words get pulled into your drills + spar so you actually <i>use</i> them.</p>
     <p class="goal">Goal: a visibly sharper vocabulary — <b>deployed</b>, not memorised. Spaced repetition resurfaces them until they stick.</p>
@@ -425,6 +456,7 @@
 <section class="view" id="v-prog"><div class="wrap">
   <div class="sec-head"><span class="sh-k">Progress</span><span class="sh-x">05 / TELEMETRY</span></div>
   <div class="card hero-bg hero-prog dither">
+    <div class="face"><img src="./assets/face-progress.webp" width="420" height="180" alt="" aria-hidden="true"/></div>
     <div class="lbl">Sharpness Score</div>
     <p class="goal"><b>What it measures:</b> how sharp your expression is — low filler, varied vocabulary, real substance.<br>
     <b>Scale:</b> <span style="color:var(--bad)">0–50 needs work</span> · <span style="color:var(--warn)">50–75 solid</span> · <span style="color:var(--good)">75–100 sharp</span>.<br>
@@ -851,7 +883,7 @@ function renderDrill(){
   if(session.i>=session.queue.length){
     const s=sharpAvg();
     a.innerHTML=`<div class="card complete dither card-enter">
-      <img class="kalpa-img" src="./assets/kalpa.webp" alt="Kalpa" style="width:108px;margin-bottom:4px"/>
+      <img class="face-portrait" src="./assets/face-train.webp" width="420" height="180" alt="" aria-hidden="true"/>
       <div class="lbl" style="margin-top:10px">Loop complete</div>
       <h2 style="font-size:30px">Edge <em>sharpened</em>.</h2>
       <div class="complete-stats">
@@ -1031,7 +1063,7 @@ function renderWords(){
   const remaining=day.ids.filter(i=>!done.ids.includes(i));
   const total=day.ids.length, doneN=total-remaining.length;
   if(!remaining.length){
-    $('#wordList').innerHTML=`<div class="empty"><img class="kalpa-img" src="./assets/kalpa.webp" alt="Kalpa" style="width:128px;margin-bottom:6px"/><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Back tomorrow for 20 new.</div></div>`;
+    $('#wordList').innerHTML=`<div class="empty"><img class="face-portrait" src="./assets/face-words.webp" width="420" height="180" alt="" aria-hidden="true"/><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Back tomorrow for 20 new.</div></div>`;
     return;
   }
   const i=remaining[0], w=WORDS[i];
@@ -1082,7 +1114,7 @@ function go(v){
     $('#sparKeyWarn').style.display=canSpend()&&!S.key?'block':'none';
     if($('#sparStart').style.display!=='none')$('#sparStance').style.display='none';
     if(!$('#sparLog').children.length && $('#sparStart').style.display!=='none'){
-      $('#sparLog').innerHTML='<div class="empty"><img class="kalpa-img" src="./assets/kalpa.webp" alt="Kalpa" style="width:128px;margin-bottom:6px"/><div class="em-t">The ring is empty</div><div class="em-s">Pick a claim above and step in — your opponent takes the opposite side and pushes back, no warm-up.</div></div>';
+      $('#sparLog').innerHTML='<div class="empty"><img class="face-portrait" src="./assets/face-spar.webp" width="420" height="180" alt="" aria-hidden="true"/><div class="em-t">The ring is empty</div><div class="em-s">Pick a claim above and step in — your opponent takes the opposite side and pushes back, no warm-up.</div></div>';
     }
   }
   window.scrollTo(0,0);
