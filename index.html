@@ -260,6 +260,9 @@
   .stance{background:linear-gradient(180deg,#1d1611,#181109);box-shadow:0 1px 0 var(--bevel-hi) inset,0 10px 26px -22px #000;position:relative;overflow:hidden}
   .stance::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--temp-spar);box-shadow:0 0 10px 0 var(--temp-spar);opacity:.7}
   .big{text-shadow:0 0 22px var(--orange-dim)} .complete-stats .cs-n{text-shadow:0 0 18px var(--orange-dim)}
+  /* raster Kalpa + veil hero */
+  .kalpa-img{width:140px;max-width:62%;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 34px -18px #000,0 0 46px -22px var(--orange-glow);display:block;margin:0 auto;animation:kalpaBreathe 5.5s var(--ease-soft) infinite}
+  .hero-veil{background:linear-gradient(180deg,rgba(16,12,9,.80),rgba(11,11,11,.94)),url('./assets/veil.webp');background-size:cover;background-position:center bottom}
   @media (prefers-reduced-motion:reduce){
     .ambient::before,.ambient::after,.lbl::before,.btn.pulse::after,.k-core,.k-eye,.k-spark,nav.tabs button.on::before,.menu .ex{animation:none!important}
     .ambient::before{opacity:.4}.ambient::after{opacity:.04}.k-eye{transform:none}
@@ -298,7 +301,7 @@
 
 <!-- ============ TRAIN ============ -->
 <section class="view on" id="v-train"><div class="wrap">
-  <div class="card dither">
+  <div class="card dither hero-veil">
     <div class="kicker">Daily Edge · the thinking Claude can't build for you</div>
     <h2 class="display" style="margin:4px 0 2px">Train the <em>edge</em>.</h2>
     <p class="goal">Pick a single drill below, or run a mixed loop. Each card says what it trains. Go as long as you want — stop whenever.</p>
@@ -800,7 +803,7 @@ function renderDrill(){
   if(session.i>=session.queue.length){
     const s=sharpAvg();
     a.innerHTML=`<div class="card complete dither card-enter">
-      <div class="kalpa" style="padding:0 0 2px"><svg viewBox="0 0 100 100" style="width:66px;height:66px"><use href="#kalpa"/></svg></div>
+      <img class="kalpa-img" src="./assets/kalpa.webp" alt="Kalpa" style="width:108px;margin-bottom:4px"/>
       <div class="lbl" style="margin-top:10px">Loop complete</div>
       <h2 style="font-size:30px">Edge <em>sharpened</em>.</h2>
       <div class="complete-stats">
@@ -980,7 +983,7 @@ function renderWords(){
   const remaining=day.ids.filter(i=>!done.ids.includes(i));
   const total=day.ids.length, doneN=total-remaining.length;
   if(!remaining.length){
-    $('#wordList').innerHTML=`<div class="empty"><div class="kalpa" style="padding:6px 0 0"><svg viewBox="0 0 100 100" style="width:58px;height:58px"><use href="#kalpa"/></svg></div><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Back tomorrow for 20 new.</div></div>`;
+    $('#wordList').innerHTML=`<div class="empty"><img class="kalpa-img" src="./assets/kalpa.webp" alt="Kalpa" style="width:128px;margin-bottom:6px"/><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Back tomorrow for 20 new.</div></div>`;
     return;
   }
   const i=remaining[0], w=WORDS[i];
@@ -1031,7 +1034,7 @@ function go(v){
     $('#sparKeyWarn').style.display=canSpend()&&!S.key?'block':'none';
     if($('#sparStart').style.display!=='none')$('#sparStance').style.display='none';
     if(!$('#sparLog').children.length && $('#sparStart').style.display!=='none'){
-      $('#sparLog').innerHTML='<div class="empty"><div class="kalpa" style="padding:6px 0 0"><svg viewBox="0 0 100 100" style="width:58px;height:58px"><use href="#kalpa"/></svg></div><div class="em-t">The ring is empty</div><div class="em-s">Pick a claim above and step in — your opponent takes the opposite side and pushes back, no warm-up.</div></div>';
+      $('#sparLog').innerHTML='<div class="empty"><img class="kalpa-img" src="./assets/kalpa.webp" alt="Kalpa" style="width:128px;margin-bottom:6px"/><div class="em-t">The ring is empty</div><div class="em-s">Pick a claim above and step in — your opponent takes the opposite side and pushes back, no warm-up.</div></div>';
     }
   }
   window.scrollTo(0,0);
