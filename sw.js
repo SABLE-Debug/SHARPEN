@@ -1,5 +1,5 @@
 // Sharpen — service worker (offline-first shell)
-const CACHE = 'sharpen-v8';
+const CACHE = 'sharpen-v9';
 const ASSETS = ['./index.html', './icon.svg', './manifest.json', './assets/kalpa.webp', './assets/veil.webp'];
 self.addEventListener('install', e => {
   e.waitUntil(caches.open(CACHE).then(c => c.addAll(ASSETS)).then(() => self.skipWaiting()));

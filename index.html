@@ -267,6 +267,57 @@
   /* raster Kalpa + veil hero */
   .kalpa-img{width:140px;max-width:62%;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 34px -18px #000,0 0 46px -22px var(--orange-glow);display:block;margin:0 auto;animation:kalpaBreathe 5.5s var(--ease-soft) infinite}
   .hero-veil{background:linear-gradient(180deg,rgba(16,12,9,.80),rgba(11,11,11,.94)),url('./assets/veil.webp');background-size:cover;background-position:center bottom}
+  /*= ===== PER-FEATURE ATMOSPHERE (Pass 3) — one signature backdrop per tab ===== */
+  /* Same recipe as the Train veil: tinted darkening gradient over a small webp,
+     cover, center-bottom. Each gradient is keyed to the tab's temperature so the
+     image reads as that feature's identity. Text sits on the dark lower half. */
+  .hero-bg{position:relative;background-size:cover;background-position:center bottom;background-repeat:no-repeat;isolation:isolate}
+  /* a thin temperature wash + film grain over every hero image — unifies the set */
+  .hero-bg::after{content:"";position:absolute;inset:0;z-index:-1;background-image:var(--dither);background-size:3px 3px;opacity:.045;mix-blend-mode:screen;pointer-events:none}
+  /* LEARN — data-blue ingest field. Cool top, carbon floor. */
+  .hero-learn{background-image:
+      linear-gradient(180deg,rgba(8,12,22,.62) 0%,rgba(9,11,17,.86) 58%,rgba(10,10,10,.96) 100%),
+      url('./assets/bg-learn.webp')}
+  /* WORDS — green lexicon shelf. */
+  .hero-words{background-image:
+      linear-gradient(180deg,rgba(9,17,13,.60) 0%,rgba(9,13,11,.86) 58%,rgba(10,10,10,.96) 100%),
+      url('./assets/bg-words.webp')}
+  /* SPAR — amber arena. Warmer, more contrast — it's the fight. */
+  .hero-spar{background-image:
+      linear-gradient(180deg,rgba(22,15,6,.58) 0%,rgba(16,12,7,.84) 56%,rgba(10,10,10,.96) 100%),
+      url('./assets/bg-spar.webp')}
+  /* PROGRESS — chrome telemetry. Coolest, most neutral. */
+  .hero-prog{background-image:
+      linear-gradient(180deg,rgba(16,18,22,.60) 0%,rgba(12,13,15,.86) 58%,rgba(10,10,10,.96) 100%),
+      url('./assets/bg-prog.webp')}
+  /* hero card on a temp backdrop drops its own flat panel fill so the image shows */
+  .card.hero-bg{background-color:transparent}
+  .card.hero-bg::before{opacity:.42} /* lift the temp hairline a touch over imagery */
+
+  /*= ===== EDITORIAL RHYTHM (Pass 3) — break the uniform card-grid feel ===== */
+  /* 1 · Section eyebrow + index — every view opens like a manual page, not a form.
+        A hairline rule with a mono index on the right gives each tab a masthead. */
+  .sec-head{display:flex;align-items:baseline;gap:12px;margin:2px 2px 14px;padding-bottom:9px;
+    border-bottom:1px solid var(--line);position:relative}
+  .sec-head::after{content:"";position:absolute;left:0;bottom:-1px;width:34px;height:1px;background:var(--tab-temp);box-shadow:0 0 7px 0 var(--tab-temp);opacity:.8}
+  .sec-head .sh-k{font-family:var(--mono);font-size:9px;letter-spacing:.24em;text-transform:uppercase;color:var(--tab-temp)}
+  .sec-head .sh-x{margin-left:auto;font-family:var(--mono);font-size:9px;letter-spacing:.14em;color:var(--dim)}
+  /* 2 · First card in any list-style view reads bigger — establishes hierarchy
+        instead of N identical rectangles. Title scales up, copy gets air. */
+  .hero-bg .todo{font-size:15.5px;line-height:1.5}
+  .hero-bg .lbl{font-size:11px;letter-spacing:.18em}
+  /* 3 · Asymmetric type scale on the masthead H2 — display serif wants a bigger
+        jump than the body. Tighten leading, widen the optical gap below. */
+  .display{margin-bottom:6px}
+  .hero-veil .goal,.hero-bg .goal{max-width:42ch} /* measure control — copy never runs full-bleed */
+  /* 4 · Hanging mono index on the rich Train tiles already exists (.ex-sn); echo it
+        on the section so the whole surface feels indexed, not listed. */
+  .wrap{padding-top:20px}
+  /* 5 · The two stacked Progress cards get a connective seam, not a gap — reads as
+        one instrument cluster rather than two loose boxes. */
+  #v-prog .card + .card{margin-top:-2px;border-top-left-radius:6px;border-top-right-radius:6px}
+  /* 6 · Tighten the Words list rows — denser, more editorial, less form-like. */
+  #v-words .word{padding-top:10px;padding-bottom:10px}
   @media (prefers-reduced-motion:reduce){
     .ambient::before,.ambient::after,.lbl::before,.btn.pulse::after,.k-core,.k-eye,.k-spark,nav.tabs button.on::before,.menu .ex{animation:none!important}
     .ambient::before{opacity:.4}.ambient::after{opacity:.04}.k-eye{transform:none}
@@ -305,12 +356,13 @@
 
 <!-- ============ TRAIN ============ -->
 <section class="view on" id="v-train"><div class="wrap">
+  <div class="sec-head"><span class="sh-k">Train</span><span class="sh-x">01 / DAILY EDGE</span></div>
   <div class="card dither hero-veil">
     <div class="kicker">Daily Edge · the thinking Claude can't build for you</div>
     <h2 class="display" style="margin:4px 0 2px">Train the <em>edge</em>.</h2>
     <p class="goal">Pick a single drill below, or run a mixed loop. Each card says what it trains. Go as long as you want — stop whenever.</p>
     <button class="btn pulse" id="startBtn">Run a mixed loop ▸</button>
-    <p class="small" style="margin:10px 0 0">Streak <span class="stat" id="streak">0</span> days</p>
+    <p class="small" style="margin:10px 0 0">Streak <span class="stat" id="streak">0</span> <span id="streakUnit">days</span></p>
   </div>
   <div class="menu">
     <button class="ex wide" data-drill="explain"><span class="ex-sn">01</span><span class="ex-ic"><svg><use href="#m-explain"/></svg></span><span class="ex-name">Explain <em>it</em></span><span class="ex-trains">trains · <b>understanding + articulation</b></span></button>
@@ -332,7 +384,8 @@
 
 <!-- ============ LEARN ============ -->
 <section class="view" id="v-learn"><div class="wrap">
-  <div class="card tight">
+  <div class="sec-head"><span class="sh-k">Learn</span><span class="sh-x">02 / INGEST</span></div>
+  <div class="card tight hero-bg hero-learn dither">
     <div class="lbl">Learn · paste anything, own it forever</div>
     <p class="todo">Drop in a term, concept, or paragraph from <b>any field</b> — law, aviation, business, a textbook. It explains it simply, then folds it into your drills + spaced repetition so it sticks for good.</p>
     <div id="learnKeyWarn" class="warnbox" style="display:none">Learn needs your API key (it reads + explains your text). Add it via the ⚙ gear ▸ — about a third of a cent per item.</div>
@@ -344,7 +397,8 @@
 
 <!-- ============ SPAR ============ -->
 <section class="view" id="v-spar"><div class="wrap">
-  <div class="card tight">
+  <div class="sec-head"><span class="sh-k">Spar</span><span class="sh-x">04 / ARENA</span></div>
+  <div class="card tight hero-bg hero-spar dither">
     <div class="lbl">Spar 🥊 · think on your feet, under push-back</div>
     <p class="todo">Pick a topic. An adversary argues the <i>opposite</i> and presses you. Defend, adapt, hold your ground — live, no editing your way out.</p>
     <p class="goal">Goal: trains the whole gap list at once — <b>real-time reasoning, recall, articulation, presence</b> — because here Claude disagrees instead of helping.</p>
@@ -370,7 +424,8 @@
 
 <!-- ============ WORDS ============ -->
 <section class="view" id="v-words"><div class="wrap">
-  <div class="card tight">
+  <div class="sec-head"><span class="sh-k">Words</span><span class="sh-x">03 / LEXICON</span></div>
+  <div class="card tight hero-bg hero-words dither">
     <div class="lbl">Words · 20 new a day, in plain format</div>
     <p class="todo">Read each upgrade word as <b>fancy : simple</b>, tap 🔊 to hear it, then mark <b>Got it</b> or <b>Review</b>. Today's words get pulled into your drills + spar so you actually <i>use</i> them.</p>
     <p class="goal">Goal: a visibly sharper vocabulary — <b>deployed</b>, not memorised. Spaced repetition resurfaces them until they stick.</p>
@@ -380,7 +435,8 @@
 
 <!-- ============ PROGRESS ============ -->
 <section class="view" id="v-prog"><div class="wrap">
-  <div class="card">
+  <div class="sec-head"><span class="sh-k">Progress</span><span class="sh-x">05 / TELEMETRY</span></div>
+  <div class="card hero-bg hero-prog dither">
     <div class="lbl">Sharpness Score</div>
     <p class="goal"><b>What it measures:</b> how sharp your expression is — low filler, varied vocabulary, real substance.<br>
     <b>Scale:</b> <span style="color:var(--bad)">0–50 needs work</span> · <span style="color:var(--warn)">50–75 solid</span> · <span style="color:var(--good)">75–100 sharp</span>.<br>
@@ -429,9 +485,9 @@
 <nav class="tabs">
   <button data-v="train" class="on"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-recall"/></svg></span>Train</button>
   <button data-v="learn"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-explain"/></svg></span>Learn</button>
-  <button data-v="words"><span class="ic">▦</span>Words</button>
+  <button data-v="words"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-word"/></svg></span>Words</button>
   <button data-v="spar"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-spar"/></svg></span>Spar</button>
-  <button data-v="prog"><span class="ic">▲</span>Progress</button>
+  <button data-v="prog"><span class="ic"><svg style="width:18px;height:18px;color:currentColor" aria-hidden="true"><use href="#m-numbers"/></svg></span>Progress</button>
 </nav>
 
 <!-- ============ ONBOARDING ============ -->
@@ -1058,7 +1114,7 @@ function renderProg(){
   } else $('#usageTxt').textContent='No balance set — offline drills are free. Add credits in Settings for Spar + AI grade.';
 }
 function refreshUI(){
-  $('#streak').textContent=S.streak;
+  $('#streak').textContent=S.streak; { const u=$('#streakUnit'); if(u) u.textContent = S.streak===1?'day':'days'; }
   $('#hdrmeta').innerHTML=`◷ ${dayKey()}<br>${S.balance>0?'$'+(S.balance-S.spent).toFixed(2)+' left':'free mode'}`;
 }
 
