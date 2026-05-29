@@ -434,7 +434,7 @@
     <div id="trend" class="small mono" style="margin-top:6px"></div>
     <hr class="hr"/>
     <div class="row">
-      <div style="flex:1"><div class="lbl">Streak</div><div class="big" style="font-size:30px"><span id="streak2">0</span></div><div class="small">days in a row · consistency compounds</div></div>
+      <div style="flex:1"><div class="lbl">Streak</div><div class="big" style="font-size:30px"><span id="streak2">0</span></div><div class="small"><span id="streakUnit2">days</span> in a row · consistency compounds</div></div>
       <div style="flex:1"><div class="lbl">Words owned</div><div class="big" style="font-size:30px" id="wordsOwned">0</div><div class="small">retained (hit box 2+), not just seen</div></div>
       <div style="flex:1"><div class="lbl">Drills done</div><div class="big" style="font-size:30px" id="drillsDone">0</div><div class="small">lifetime total</div></div>
     </div>
@@ -1089,7 +1089,7 @@ function go(v){
 }
 function renderProg(){
   const s=sharpAvg(); $('#sharpNow').textContent=s; $('#sharpBar').style.width=s+'%';
-  $('#streak2').textContent=S.streak; $('#wordsOwned').textContent=S.owned.filter(x=>x.startsWith('w_')).length;
+  $('#streak2').textContent=S.streak; { const u=$('#streakUnit2'); if(u) u.textContent = S.streak===1?'day':'days'; } $('#wordsOwned').textContent=S.owned.filter(x=>x.startsWith('w_')).length;
   $('#drillsDone').textContent=S.drills;
   const h=S.hist.slice(-14).map(x=>x.s);
   if(h.length){$('#trend').innerHTML='recent: '+h.join(' ');}
