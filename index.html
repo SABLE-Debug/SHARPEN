@@ -45,26 +45,29 @@
   header h1 em{color:var(--orange-soft);font-style:italic}
   header .meta{margin-left:auto;font-family:var(--mono);font-size:11px;color:var(--mid);text-align:right}
   .view{display:none} .view.on{display:block}
-  /* cards */
-  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:16px;margin:0 0 14px}
+  /* cards — flat 1-bit frame, sharp corners */
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:0;padding:16px;margin:0 0 14px}
   .card.tight{padding:13px 14px}
   .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--orange);margin-bottom:6px}
   .todo{color:var(--ink);font-size:14.5px;margin:2px 0 4px}
   .goal{color:var(--mid);font-size:12.5px;margin-bottom:10px}
   .goal b{color:var(--orange-soft);font-weight:600}
-  /* buttons */
+  /* buttons — flat rectangle, sharp corners, 1-bit inset double-frame */
   button{font-family:var(--sans);cursor:pointer;border:0}
   .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:var(--orange);
-    color:#0A0A0A;font-weight:700;border-radius:11px;padding:13px 16px;font-size:15px;width:100%}
-  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:600}
-  .btn.sm{width:auto;padding:9px 13px;font-size:13px;border-radius:9px}
+    color:#0A0A0A;font-weight:700;border-radius:0;padding:13px 16px;font-size:15px;width:100%;
+    box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px rgba(10,10,10,.55)}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line);font-weight:600;
+    box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px var(--line)}
+  .btn.sm{width:auto;padding:9px 13px;font-size:13px;border-radius:0}
   .btn:active{transform:translateY(1px)}
   .row{display:flex;gap:9px;flex-wrap:wrap}
   textarea,input{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
-    border-radius:11px;padding:12px;font-size:15px;font-family:var(--sans);resize:vertical}
+    border-radius:0;padding:12px;font-size:15px;font-family:var(--sans);resize:vertical;
+    box-shadow:inset 0 0 0 2px var(--panel2),inset 0 0 0 3px var(--line)}
   textarea{min-height:120px}
   .pill{font-family:var(--mono);font-size:11px;color:var(--mid);border:1px solid var(--line);
-    border-radius:999px;padding:5px 11px;background:var(--panel2)}
+    border-radius:0;padding:5px 11px;background:var(--panel2)}
   .pill.on{color:#0A0A0A;background:var(--orange-soft);border-color:var(--orange-soft);font-weight:700}
   /* tabbar */
   nav.tabs{position:fixed;bottom:0;left:0;right:0;background:#101010;border-top:1px solid var(--line);
@@ -83,23 +86,23 @@
   .word .up{font-family:var(--serif);font-size:17px} .word .eq{color:var(--mid)}
   .word .ex{font-size:12px;color:var(--dim);font-style:italic;margin-top:2px}
   .spk{background:none;color:var(--mid);font-size:17px;padding:2px 6px}
-  .msg{padding:10px 13px;border-radius:12px;margin:8px 0;font-size:14.5px;max-width:88%}
+  .msg{padding:10px 13px;border-radius:0;margin:8px 0;font-size:14.5px;max-width:88%}
   .msg.you{background:var(--panel2);margin-left:auto;border:1px solid var(--line)}
   .msg.ai{background:#1a1410;border:1px solid #3a2a18}
   .msg.sys{background:none;color:var(--dim);font-size:12px;text-align:center;max-width:100%;font-family:var(--mono)}
-  .stance{position:sticky;top:54px;z-index:4;background:#1a1410;border:1px solid #3a2a18;border-radius:11px;padding:10px 13px;margin-bottom:10px}
+  .stance{position:sticky;top:54px;z-index:4;background:#1a1410;border:1px solid #3a2a18;border-radius:0;padding:10px 13px;margin-bottom:10px}
   .stance .lbl{color:var(--orange);margin-bottom:3px}
   .stance .pt{font-family:var(--serif);font-size:16px;color:var(--ink);line-height:1.25}
   .stance .sub{font-size:11px;color:var(--mid);margin-top:4px}
-  .bar{height:8px;background:var(--panel2);border-radius:6px;overflow:hidden;margin:8px 0}
-  .bar > i{display:block;height:100%;background:linear-gradient(90deg,var(--orange),var(--orange-soft))}
+  .bar{height:8px;background:var(--panel2);border:1px solid var(--line);border-radius:0;overflow:hidden;margin:8px 0}
+  .bar > i{display:block;height:100%;background:var(--orange)}
   .big{font-size:40px;font-family:var(--serif);color:var(--ink);line-height:1}
   /* overlay */
   .ovl{position:fixed;inset:0;background:#0A0A0Aee;z-index:20;display:none;align-items:center;justify-content:center;padding:22px}
   .ovl.on{display:flex} .ovl .card{max-width:440px;width:100%;margin:0}
-  .qmark{margin-left:6px;width:20px;height:20px;border-radius:50%;border:1px solid var(--line);
+  .qmark{margin-left:6px;width:20px;height:20px;border-radius:0;border:1px solid var(--line);
     color:var(--mid);font-size:12px;background:none;display:inline-flex;align-items:center;justify-content:center}
-  .warnbox{background:#1a1410;border:1px solid #3a2a18;border-radius:11px;padding:11px 13px;font-size:12.5px;color:var(--orange-soft)}
+  .warnbox{background:#1a1410;border:1px solid #3a2a18;border-radius:0;padding:11px 13px;font-size:12.5px;color:var(--orange-soft)}
 
   /*= ===== SANKALPA POLISH ===== */
   /* Cormorant runs small/light — bump size + weight */
@@ -124,7 +127,7 @@
   .card.complete .lbl{display:inline-block}
   .card.complete::after{opacity:.07}
   .complete-stats{display:flex;gap:10px;margin:16px 0 4px;justify-content:center}
-  .complete-stats > div{flex:1;max-width:110px;background:var(--panel2);border:1px solid var(--line);border-radius:11px;padding:12px 8px}
+  .complete-stats > div{flex:1;max-width:110px;background:var(--panel2);border:1px solid var(--line);border-radius:0;padding:12px 8px}
   .complete-stats .cs-n{font-family:var(--serif);font-size:28px;color:var(--orange-soft);line-height:1;font-weight:600}
   .complete-stats .cs-l{font-family:var(--mono);font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--mid);margin-top:4px}
   /* empty states */
@@ -140,26 +143,26 @@
   button,.pill,.spk,.qmark{touch-action:manipulation}
   .pill{min-height:38px;display:inline-flex;align-items:center;transition:transform .12s var(--ease-snap),background-color .18s var(--ease-soft),border-color .18s var(--ease-soft),color .18s var(--ease-soft)}
   .pill:active{transform:scale(.95)}
-  .spk{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:9px;transition:transform .12s var(--ease-snap),color .18s var(--ease-soft),background-color .18s var(--ease-soft)}
+  .spk{min-width:40px;min-height:40px;display:inline-flex;align-items:center;justify-content:center;border-radius:0;transition:transform .12s var(--ease-snap),color .18s var(--ease-soft),background-color .18s var(--ease-soft)}
   .spk:active{transform:scale(.88)} .spk.speaking{color:var(--orange-soft)}
-  nav.tabs button{min-height:48px;justify-content:center;border-radius:10px;transition:color .18s var(--ease-soft)}
+  nav.tabs button{min-height:48px;justify-content:center;border-radius:0;transition:color .18s var(--ease-soft)}
   nav.tabs button .ic{transition:transform .14s var(--ease-snap)}
   nav.tabs button:active .ic{transform:scale(.85)} nav.tabs button.on .ic{transform:translateY(-1px)}
   .word .btn.sm{min-height:40px}
   .btn{transition:transform .12s var(--ease-snap),background-color .18s var(--ease-soft),box-shadow .18s var(--ease-soft),opacity .18s var(--ease-soft);will-change:transform;user-select:none}
   .btn:active{transform:translateY(1px) scale(.985)} .btn.ghost:active{transform:translateY(1px) scale(.985)}
   @media (hover:hover){
-    .btn:hover{background:var(--orange-soft);box-shadow:0 4px 18px -6px rgba(255,106,0,.5)}
-    .btn.ghost:hover{border-color:var(--orange);background:rgba(255,106,0,.06)}
+    .btn:hover{background:var(--orange-soft);box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px rgba(10,10,10,.55)}
+    .btn.ghost:hover{border-color:var(--orange);background:rgba(255,106,0,.06);box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px var(--orange)}
     .pill:hover{border-color:#3a3a3a;color:var(--ink)} .pill.on:hover{background:var(--orange);border-color:var(--orange)}
     .spk:hover{color:var(--orange-soft);background:var(--panel2)} .word:hover{background:#171717}
     nav.tabs button.on:hover{color:var(--orange-soft)}
   }
   :focus{outline:none}
-  .btn:focus-visible,.pill:focus-visible,.spk:focus-visible,nav.tabs button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:8px}
-  textarea:focus,input:focus{border-color:var(--orange);box-shadow:0 0 0 3px rgba(255,106,0,.14);transition:border-color .18s var(--ease-soft),box-shadow .18s var(--ease-soft)}
+  .btn:focus-visible,.pill:focus-visible,.spk:focus-visible,nav.tabs button:focus-visible,textarea:focus-visible,input:focus-visible{outline:2px solid var(--orange);outline-offset:2px;border-radius:0}
+  textarea:focus,input:focus{border-color:var(--orange);box-shadow:inset 0 0 0 2px var(--panel2),inset 0 0 0 3px var(--orange);transition:border-color .18s var(--ease-soft),box-shadow .18s var(--ease-soft)}
   .btn:disabled,.btn[disabled]{opacity:.5;cursor:not-allowed;transform:none!important;background:var(--panel2);color:var(--mid);box-shadow:none}
-  .word{transition:background-color .18s var(--ease-soft);border-radius:8px;padding-left:8px;padding-right:8px;margin-left:-8px;margin-right:-8px}
+  .word{transition:background-color .18s var(--ease-soft);border-radius:0;padding-left:8px;padding-right:8px;margin-left:-8px;margin-right:-8px}
   .view.on{animation:viewIn .2s var(--ease-out)}
   @keyframes viewIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   @keyframes cardIn{from{opacity:0;transform:translateY(10px) scale(.99)}to{opacity:1;transform:none}}
@@ -206,7 +209,7 @@
   .display{font-family:var(--serif);font-weight:600;font-size:clamp(30px,10vw,46px);line-height:1;letter-spacing:.5px}
   .display em{font-style:italic;color:var(--orange-soft)}
   .menu{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:0 0 14px}
-  .ex{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:13px;padding:14px;text-align:left;color:var(--ink);width:100%;cursor:pointer;position:relative;transition:transform .14s var(--ease-snap),border-color .18s var(--ease-soft)}
+  .ex{display:flex;flex-direction:column;gap:6px;background:var(--panel);border:1px solid var(--line);border-radius:0;padding:14px;text-align:left;color:var(--ink);width:100%;cursor:pointer;position:relative;transition:transform .14s var(--ease-snap),border-color .18s var(--ease-soft)}
   .ex.wide{grid-column:span 2}
   .ex:active{transform:translateY(1px) scale(.985)}
   .ex .ex-sn{position:absolute;top:11px;right:12px;font-family:var(--mono);font-size:9px;color:var(--dim);letter-spacing:.1em}
@@ -224,15 +227,15 @@
   .ambient::after{content:"";position:absolute;inset:-2px;background-image:var(--dither);background-size:3px 3px;opacity:.035;mix-blend-mode:screen;will-change:opacity;animation:ditherShimmer 7s steps(2,end) infinite}
   @keyframes emberDrift{0%{transform:translate3d(0,0,0) scale(1)}50%{transform:translate3d(6vmax,4vmax,0) scale(1.08)}100%{transform:translate3d(-4vmax,7vmax,0) scale(1.04)}}
   @keyframes ditherShimmer{0%,100%{opacity:.030}50%{opacity:.055}}
-  /* card material + raking top-light */
-  .card{background:linear-gradient(180deg,var(--card-top),var(--card-bot));box-shadow:0 1px 0 var(--bevel-hi) inset,0 -1px 0 var(--bevel-lo) inset,0 10px 30px -22px rgba(0,0,0,.9);position:relative;overflow:hidden;isolation:isolate}
+  /* card material — flat 1-bit panel, single hairline frame, no bevel */
+  .card{background:var(--panel);box-shadow:none;position:relative;overflow:hidden;isolation:isolate}
   .card::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,var(--tab-temp),transparent);opacity:.28;z-index:2}
-  /* rich exercise tiles (override Pass-1 minimal) */
-  .ex{background:linear-gradient(180deg,var(--card-top),var(--card-bot));box-shadow:0 1px 0 var(--bevel-hi) inset,0 10px 26px -22px rgba(0,0,0,.9);isolation:isolate}
+  /* rich exercise tiles — flat fill, sharp, no bevel */
+  .ex{background:var(--panel);box-shadow:none;isolation:isolate}
   .ex::after{content:"";position:absolute;inset:0;z-index:-1;opacity:0;background:radial-gradient(120% 90% at 0% 0%, var(--orange-dim), transparent 55%);transition:opacity .22s var(--ease-soft)}
   .ex:active::after{opacity:1}
   .ex .ex-ic{transition:transform .2s var(--ease-snap)}
-  @media (hover:hover){.ex:hover{transform:translateY(-2px);border-color:var(--orange-line);box-shadow:0 1px 0 var(--bevel-hi) inset,0 16px 34px -20px rgba(0,0,0,.95),0 0 24px -12px var(--orange-glow)} .ex:hover::after{opacity:1} .ex:hover .ex-ic{transform:translateY(-1px)}}
+  @media (hover:hover){.ex:hover{transform:translateY(-2px);border-color:var(--orange)} .ex:hover::after{opacity:1} .ex:hover .ex-ic{transform:translateY(-1px)}}
   .menu .ex{animation:exIn .4s var(--ease-out) both}
   .menu .ex:nth-child(2){animation-delay:.04s}.menu .ex:nth-child(3){animation-delay:.08s}.menu .ex:nth-child(4){animation-delay:.12s}.menu .ex:nth-child(5){animation-delay:.16s}.menu .ex:nth-child(6){animation-delay:.2s}.menu .ex:nth-child(7){animation-delay:.24s}.menu .ex:nth-child(n+8){animation-delay:.28s}
   @keyframes exIn{from{opacity:0;transform:translateY(12px) scale(.98)}to{opacity:1;transform:none}}
@@ -240,9 +243,9 @@
   .lbl{display:flex;align-items:center;line-height:1.3}
   .lbl::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--tab-temp);margin-right:8px;flex:none;animation:lblPulse 3.4s var(--ease-soft) infinite}
   @keyframes lblPulse{0%,100%{box-shadow:0 0 0 0 var(--orange-glow);opacity:.9}50%{box-shadow:0 0 7px 1px var(--orange-glow);opacity:1}}
-  /* button material + idle sheen on hero CTA */
-  .btn{background:linear-gradient(180deg,var(--orange-soft),var(--orange));box-shadow:0 1px 0 rgba(255,255,255,.25) inset,0 8px 20px -10px var(--orange-glow);position:relative;overflow:hidden}
-  .btn.ghost{background:transparent;box-shadow:none}
+  /* button material — flat orange, 1-bit inset double-frame, idle sheen on hero CTA */
+  .btn{background:var(--orange);box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px rgba(10,10,10,.55);position:relative;overflow:hidden}
+  .btn.ghost{background:transparent;box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px var(--line)}
   .btn.pulse::after{content:"";position:absolute;top:0;bottom:0;width:40%;left:-50%;background:linear-gradient(90deg,transparent,rgba(255,255,255,.28),transparent);transform:skewX(-18deg);animation:ctaSheen 4.5s var(--ease-soft) infinite;will-change:transform}
   @keyframes ctaSheen{0%{left:-50%}55%,100%{left:130%}}
   /* tab active = lit underline in section temp */
@@ -265,34 +268,19 @@
   .stance::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;background:var(--temp-spar);box-shadow:0 0 10px 0 var(--temp-spar);opacity:.7}
   .big{text-shadow:0 0 22px var(--orange-dim)} .complete-stats .cs-n{text-shadow:0 0 18px var(--orange-dim)}
   /* raster Kalpa + veil hero */
-  .kalpa-img{width:140px;max-width:62%;border-radius:14px;border:1px solid var(--line);box-shadow:0 14px 34px -18px #000,0 0 46px -22px var(--orange-glow);display:block;margin:0 auto;animation:kalpaBreathe 5.5s var(--ease-soft) infinite}
+  .kalpa-img{width:140px;max-width:62%;border-radius:0;border:1px solid var(--line);box-shadow:0 14px 34px -18px #000,0 0 46px -22px var(--orange-glow);display:block;margin:0 auto;animation:kalpaBreathe 5.5s var(--ease-soft) infinite}
   .hero-veil{background:linear-gradient(180deg,rgba(16,12,9,.80),rgba(11,11,11,.94)),url('./assets/veil.webp');background-size:cover;background-position:center bottom}
-  /*= ===== PER-FEATURE ATMOSPHERE (Pass 3) — one signature backdrop per tab ===== */
-  /* Same recipe as the Train veil: tinted darkening gradient over a small webp,
-     cover, center-bottom. Each gradient is keyed to the tab's temperature so the
-     image reads as that feature's identity. Text sits on the dark lower half. */
-  .hero-bg{position:relative;background-size:cover;background-position:center bottom;background-repeat:no-repeat;isolation:isolate}
-  /* a thin temperature wash + film grain over every hero image — unifies the set */
-  .hero-bg::after{content:"";position:absolute;inset:0;z-index:-1;background-image:var(--dither);background-size:3px 3px;opacity:.045;mix-blend-mode:screen;pointer-events:none}
-  /* LEARN — data-blue ingest field. Cool top, carbon floor. */
-  .hero-learn{background-image:
-      linear-gradient(180deg,rgba(8,12,22,.62) 0%,rgba(9,11,17,.86) 58%,rgba(10,10,10,.96) 100%),
-      url('./assets/bg-learn.webp')}
-  /* WORDS — green lexicon shelf. */
-  .hero-words{background-image:
-      linear-gradient(180deg,rgba(9,17,13,.60) 0%,rgba(9,13,11,.86) 58%,rgba(10,10,10,.96) 100%),
-      url('./assets/bg-words.webp')}
-  /* SPAR — amber arena. Warmer, more contrast — it's the fight. */
-  .hero-spar{background-image:
-      linear-gradient(180deg,rgba(22,15,6,.58) 0%,rgba(16,12,7,.84) 56%,rgba(10,10,10,.96) 100%),
-      url('./assets/bg-spar.webp')}
-  /* PROGRESS — chrome telemetry. Coolest, most neutral. */
-  .hero-prog{background-image:
-      linear-gradient(180deg,rgba(16,18,22,.60) 0%,rgba(12,13,15,.86) 58%,rgba(10,10,10,.96) 100%),
-      url('./assets/bg-prog.webp')}
-  /* hero card on a temp backdrop drops its own flat panel fill so the image shows */
-  .card.hero-bg{background-color:transparent}
-  .card.hero-bg::before{opacity:.42} /* lift the temp hairline a touch over imagery */
+  /*= ===== PER-FEATURE ATMOSPHERE (Pass 3) — 1-bit treatment, no photos ===== */
+  /* Photographic hero backdrops removed (they clashed with the 1-bit register).
+     Each feature now reads as a flat carbon panel with a subtle dither texture and
+     a temperature-keyed hairline frame. The --tab-temp accent on the eyebrow +
+     the top hairline (.card::before) keeps the four features visually distinct. */
+  .hero-bg{position:relative;background:var(--panel);isolation:isolate;border-color:var(--tab-temp)}
+  .hero-bg{border-color:color-mix(in srgb, var(--tab-temp) 32%, var(--line))}
+  /* faint film-grain dither over each hero panel — unifies the set */
+  .hero-bg::after{content:"";position:absolute;inset:0;z-index:-1;background-image:var(--dither);background-size:3px 3px;opacity:.05;mix-blend-mode:screen;pointer-events:none}
+  /* the temp hairline reads a touch stronger on hero panels */
+  .card.hero-bg::before{opacity:.5}
 
   /*= ===== EDITORIAL RHYTHM (Pass 3) — break the uniform card-grid feel ===== */
   /* 1 · Section eyebrow + index — every view opens like a manual page, not a form.
@@ -315,7 +303,7 @@
   .wrap{padding-top:20px}
   /* 5 · The two stacked Progress cards get a connective seam, not a gap — reads as
         one instrument cluster rather than two loose boxes. */
-  #v-prog .card + .card{margin-top:-2px;border-top-left-radius:6px;border-top-right-radius:6px}
+  #v-prog .card + .card{margin-top:-1px}
   /* 6 · Tighten the Words list rows — denser, more editorial, less form-like. */
   #v-words .word{padding-top:10px;padding-bottom:10px}
   @media (prefers-reduced-motion:reduce){
@@ -399,7 +387,7 @@
 <section class="view" id="v-spar"><div class="wrap">
   <div class="sec-head"><span class="sh-k">Spar</span><span class="sh-x">04 / ARENA</span></div>
   <div class="card tight hero-bg hero-spar dither">
-    <div class="lbl">Spar 🥊 · think on your feet, under push-back</div>
+    <div class="lbl"><svg class="mark"><use href="#m-spar"/></svg>Spar · think on your feet, under push-back</div>
     <p class="todo">Pick a topic. An adversary argues the <i>opposite</i> and presses you. Defend, adapt, hold your ground — live, no editing your way out.</p>
     <p class="goal">Goal: trains the whole gap list at once — <b>real-time reasoning, recall, articulation, presence</b> — because here Claude disagrees instead of helping.</p>
     <div id="sparKeyWarn" class="warnbox" style="display:none">Spar needs your API key (it's a live AI opponent). Add it in <b>Settings ▸</b> — ~a third of a cent per exchange.</div>
@@ -427,7 +415,7 @@
   <div class="sec-head"><span class="sh-k">Words</span><span class="sh-x">03 / LEXICON</span></div>
   <div class="card tight hero-bg hero-words dither">
     <div class="lbl">Words · 20 new a day, in plain format</div>
-    <p class="todo">Read each upgrade word as <b>fancy : simple</b>, tap 🔊 to hear it, then mark <b>Got it</b> or <b>Review</b>. Today's words get pulled into your drills + spar so you actually <i>use</i> them.</p>
+    <p class="todo">Read each upgrade word as <b>fancy : simple</b>, tap <b>say</b> to hear it, then mark <b>Got it</b> or <b>Review</b>. Today's words get pulled into your drills + spar so you actually <i>use</i> them.</p>
     <p class="goal">Goal: a visibly sharper vocabulary — <b>deployed</b>, not memorised. Spaced repetition resurfaces them until they stick.</p>
   </div>
   <div class="card" id="wordList"></div>
@@ -972,7 +960,7 @@ function sparTyping(on){let el=$('#sparTyping');
 async function sparBegin(topic){
   if(canSpend()){const w=$('#sparKeyWarn');w.style.display='block';w.classList.remove('shake');void w.offsetWidth;w.classList.add('shake');return;}
   spar={topic,turns:[]}; $('#sparStart').style.display='none'; $('#sparInputWrap').style.display='block';
-  $('#sparStance').innerHTML=`<div class="lbl">🛡 You're defending</div><div class="pt">"${esc(topic)}"</div><div class="sub">Claude argues AGAINST it — hold your ground.</div>`;
+  $('#sparStance').innerHTML=`<div class="lbl"><svg class="mark"><use href="#m-spar"/></svg>You're defending</div><div class="pt">"${esc(topic)}"</div><div class="sub">Claude argues AGAINST it — hold your ground.</div>`;
   $('#sparStance').style.display='block';
   $('#sparLog').innerHTML=''; sparTyping(true);
   try{const out=await callHaiku(SPAR_SYS(topic),[{role:'user',content:'Open the debate against my position. One sharp opening jab.'}],160);
@@ -1049,7 +1037,7 @@ function renderWords(){
   const i=remaining[0], w=WORDS[i];
   $('#wordList').innerHTML=`<div class="small mono" style="margin-bottom:10px">${doneN}/${total} done today · ${remaining.length} to go</div>
     <div class="word" id="wcard"><div>
-      <div class="up">${w[0]} <span class="eq">: ${w[1]}</span> <button class="spk" onclick="speak('${w[0]}',event)">🔊</button></div>
+      <div class="up">${w[0]} <span class="eq">: ${w[1]}</span> <button class="spk" onclick="speak('${w[0]}',event)" aria-label="Say it" style="font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tab-temp);border:1px solid var(--line);padding:0 7px">say</button></div>
       <div class="ex">${w[2]} · /${w[3]}/</div></div>
       <div style="display:flex;flex-direction:column;gap:5px">
         <button class="btn sm" onclick="markWord(${i},true)">Got it</button>
@@ -1105,7 +1093,7 @@ function renderProg(){
   $('#drillsDone').textContent=S.drills;
   const h=S.hist.slice(-14).map(x=>x.s);
   if(h.length){$('#trend').innerHTML='recent: '+h.join(' ');}
-  else{$('#trend').innerHTML='<div class="empty" style="padding:18px 0"><div class="em-ic">📈</div><div class="em-t">No trend yet</div><div class="em-s">Run your first loop on the Today tab — your sharpness line starts moving after one session.</div></div>';}
+  else{$('#trend').innerHTML='<div class="empty" style="padding:18px 0"><div class="em-ic"><svg style="width:30px;height:30px;color:var(--tab-temp)" aria-hidden="true"><use href="#m-numbers"/></svg></div><div class="em-t">No trend yet</div><div class="em-s">Run your first loop on the Today tab — your sharpness line starts moving after one session.</div></div>';}
   // usage
   if(S.balance>0){const pct=Math.min(100,Math.round(S.spent/S.balance*100));
     $('#usageBar').style.width=pct+'%';
@@ -1122,7 +1110,7 @@ function refreshUI(){
 const ONB=[
   ["What Sharpen is","A daily gym for the thinking Claude can't build for you: pulling knowledge from memory, reasoning on your feet, articulating sharply, and a growing vocabulary. ~8 minutes a day."],
   ["How a session works","Tap Start. You get a short run of drills — explain, recall, connect, compress, numbers. Type your answer (mutter it aloud), then check yourself against the model answer. Honest self-grade feeds the spaced-repetition that makes it stick."],
-  ["The five tabs","◎ Today = your daily loop · 🥊 Spar = a live AI opponent who argues back · ▦ Words = 20 new a day · ▲ Progress = your sharpness trend + spend meter · ⚙ Settings = your API key. Tap the ? on any screen if you're unsure."]
+  ["The five tabs","◎ Today = your daily loop · ◆ Spar = a live AI opponent who argues back · ▦ Words = 20 new a day · ▲ Progress = your sharpness trend + spend meter · ⚙ Settings = your API key. Tap the ? on any screen if you're unsure."]
 ];
 let onbI=0;
 function showOnb(){onbI=0;renderOnb();$('#onb').classList.add('on');}
