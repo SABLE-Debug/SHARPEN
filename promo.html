@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily Sharpen — promo V4</title>
+<title>Daily Sharpen — promo V5</title>
 <link rel="icon" href="data:,">
 
 <!-- The only permitted external resource: Cormorant Garamond display serif. -->
@@ -77,6 +77,33 @@ html,body{
   box-shadow:
     inset 0 0 220px 40px rgba(0,0,0,.85),
     0 0 0 1px rgba(255,106,0,.10);
+
+  /* ============================================================
+     2.5D DEPTH PASS — the stage is a shallow 3D room. A slow virtual
+     camera (driven by JS into the vars below) breathes over a small
+     stack of depth planes. NOT a 3D scene: a few px of parallax + a
+     couple degrees of tilt. Editorial depth, never a gimmick.
+       --camX / --camY : camera drift in px (Lissajous, set by JS)
+       --camRX / --camRY: camera tilt in deg (set by JS)
+     Each plane reads these × its own --par (parallax) / --tilt factor.
+     ============================================================ */
+  perspective:1700px;
+  perspective-origin:50% 46%;
+  transform-style:preserve-3d;
+  --camX:0px; --camY:0px; --camRX:0deg; --camRY:0deg;
+}
+
+/* a depth plane: translated on Z (depth) and parallaxed by the camera vars.
+   --z   = resting depth in px (negative = further back, positive = nearer)
+   --par = how strongly this plane reacts to camera drift (deeper → more)
+   Planes inherit the stage's preserve-3d so Z actually composites. */
+.plane{
+  transform:
+    translate3d(calc(var(--camX) * var(--par,0)), calc(var(--camY) * var(--par,0)), var(--z,0px))
+    rotateX(calc(var(--camRX) * var(--tiltX,0)))
+    rotateY(calc(var(--camRY) * var(--tiltY,0)));
+  transform-style:preserve-3d;
+  will-change:transform;
 }
 
 /* the swarm canvas — the V2 signature. sits behind type + demos.
@@ -157,7 +184,13 @@ html,body{
 .face{
   position:absolute;top:50%;left:50%;
   width:980px;height:auto;            /* 420x180 source upscaled, full frame */
-  transform:translate(-50%,-50%);
+  /* DEPTH: the face reads as the DEEPEST plane — it drifts the MOST so it
+     separates cleanly from the foreground panel as the camera breathes. Depth
+     is carried by parallax magnitude (not translateZ) so it never reorders
+     against the swarm/schematic under the stage's preserve-3d compositing.
+     Composes the centring translate(-50%,-50%) with the camera parallax. */
+  --z:0px; --par:1.5;
+  transform:translate3d(calc(-50% + var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z));
   image-rendering:pixelated;image-rendering:crisp-edges;
   /* dark ground fuses with carbon panel (Rule 35 figure-ground fusion) */
   filter:contrast(1.08) brightness(1.02);
@@ -167,23 +200,60 @@ html,body{
 /* feature scenes push the face to one side as a backdrop/identity element,
    leaving room for the pipeline demo. JS toggles .face-aside on the scene. */
 .scene.face-aside .face{
-  left:auto; right:-40px; transform:translate(0,-50%) scale(.92);
+  left:auto; right:-40px;
+  transform:translate3d(calc(var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z)) scale(.92);
   opacity:.5;
 }
-/* temp colour wash over the face (multiply keeps the dither structure) */
+/* temp colour wash over the face (multiply keeps the dither structure).
+   Tracks the face's deep plane so the wash stays glued to it under parallax. */
 .face-wash{
   position:absolute;top:50%;left:50%;
-  width:980px;height:560px;transform:translate(-50%,-50%);
+  width:980px;height:560px;
+  --z:0px; --par:1.5;
+  transform:translate3d(calc(-50% + var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z));
   z-index:12;pointer-events:none;mix-blend-mode:color;
   background:radial-gradient(ellipse 60% 70% at 50% 45%,var(--temp) 0%,transparent 70%);
   opacity:0;transition:opacity .5s, background .2s;
 }
 .scene.live .face-wash{opacity:.5}
 
-/* center type column */
+/* ============================================================
+   FACE RELIEF — one shared raw-WebGL canvas (no library). It renders the
+   resting dithered face as a shallow RELIEF: the image's own luminance is
+   read as a height field, a slow-moving virtual key light shades the form,
+   and a small per-fragment depth-parallax (also luminance-driven) gives the
+   stipple real volume — so the face reads as an embossed surface, not a flat
+   print. Sits on the face's DEEP plane, exactly over the crisp <img>. If
+   WebGL is unavailable / the texture taints (file://), this canvas simply
+   never shows and the <img> carries the face unchanged (zero regression).
+   ============================================================ */
+.face-gl{
+  position:absolute;top:50%;left:50%;
+  width:980px;height:420px;            /* 980 × (980*180/420) = 980×420 */
+  --z:0px; --par:1.5;
+  transform:translate3d(calc(-50% + var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z));
+  z-index:11;pointer-events:none;opacity:0;
+  transition:opacity .6s;
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  -webkit-user-drag:none;user-select:none}
+.face-gl.aside{
+  left:auto;right:-40px;
+  transform:translate3d(calc(var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z)) scale(.92);
+}
+/* when the relief is live, dim the flat <img> beneath it so the volume reads */
+.face.relief-on{opacity:.34!important}
+
+/* center type column — sits on the FOREGROUND plane (closest, drifts most) */
 .type{position:absolute;inset:0;z-index:20;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;pointer-events:none}
+  text-align:center;pointer-events:none;
+  /* depth: nearest plane → drifts LEAST (anchored to camera), faint tilt */
+  --z:46px; --par:.5; --tiltX:.5; --tiltY:.6;
+  transform:
+    translate3d(calc(var(--camX) * var(--par)), calc(var(--camY) * var(--par)), var(--z))
+    rotateX(calc(var(--camRX) * var(--tiltX)))
+    rotateY(calc(var(--camRY) * var(--tiltY)));
+  transform-style:preserve-3d; will-change:transform}
 
 .kicker{font-family:var(--pixel);text-transform:uppercase;
   letter-spacing:.34em;font-size:18px;color:var(--temp);
@@ -231,20 +301,40 @@ html,body{
    ============================================================ */
 
 /* device frame — a clean phone-ish panel the app lives inside, sat left.
-   The dithered face is the backdrop to its right (face-aside). */
+   The dithered face is the backdrop to its right (face-aside).
+   DEPTH: the panel sits on the PANEL plane (mid-near). The whole .demo is
+   the stable parallax + tilt handle — the .app inside keeps its own
+   punch-in animation untouched, but rides this slow camera tilt so it
+   reads as a physical card floating above the carbon, not a flat sticker. */
 .demo{position:absolute;z-index:22;left:96px;top:50%;
-  width:600px;transform:translateY(-50%);
+  width:600px;
+  --z:30px; --par:.72; --tiltX:.62; --tiltY:.82;
+  transform:
+    translate3d(calc(var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z))
+    rotateX(calc(var(--camRX) * var(--tiltX)))
+    rotateY(calc(var(--camRY) * var(--tiltY)));
+  transform-style:preserve-3d; will-change:transform;
   pointer-events:none;text-align:left}
 .app{position:relative;background:var(--bg);
   border:1px solid #262626;border-radius:14px;padding:22px 22px 20px;
-  box-shadow:0 30px 80px rgba(0,0,0,.62),0 0 0 1px rgba(0,0,0,.5),
+  /* layered drop-shadow with a parallax offset (camera vars push the cast
+     shadow opposite the drift → the card feels lifted off the surface) */
+  box-shadow:
+    calc(var(--camX,0px) * -1.1) calc(30px - var(--camY,0px) * 1.1) 80px rgba(0,0,0,.62),
+    0 0 0 1px rgba(0,0,0,.5),
     0 0 0 7px rgba(14,14,14,.9),0 0 0 8px rgba(255,106,0,.10),
-    inset 0 1px 0 rgba(255,255,255,.04);
+    inset 0 1px 0 rgba(255,255,255,.05);
   min-height:300px}
 /* the app's own ambient: faint temp ember + dither, like the real .ambient */
 .app::before{content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
   background:radial-gradient(120% 90% at 8% 0%,color-mix(in srgb,var(--temp) 12%,transparent),transparent 55%);
   opacity:.7;z-index:0}
+/* faint top rim-light edge — a physical card catches the (virtual) key light
+   along its upper-left lip. The gradient angle shifts with the camera tilt. */
+.app::after{content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;z-index:2;
+  background:linear-gradient(calc(126deg + var(--camRY,0deg) * 6),
+    rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 22%);
+  mix-blend-mode:screen;opacity:.9}
 .app > *{position:relative;z-index:1}
 
 /* masthead = real .sec-head : mono kicker + right index, hairline + temp tick */
@@ -559,6 +649,11 @@ html,body{
    far back behind type. NOT a captioned beat — no narrative text, only index
    ticks + node rings, in the Specter schematic register. */
 .schematic{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;
+  /* DEPTH: mid-back texture plane. Parallax sits between the deep face and the
+     near panel; Z stays 0 so it never reorders under preserve-3d compositing. */
+  --z:0px; --par:1.0;
+  transform:translate3d(calc(var(--camX) * var(--par)), calc(var(--camY) * var(--par)), var(--z));
+  will-change:transform;
   transition:opacity .5s}
 .schematic.on{opacity:.5}
 .schematic.faint.on{opacity:.16}   /* behind demos — barely-there texture, never competes */
@@ -596,6 +691,14 @@ html,body{
   .bar > i{transition-duration:.001s}
   .caret{opacity:1}
   .face{image-rendering:auto}
+  /* 2.5D DEPTH PASS collapses to FLAT: freeze the camera, zero every plane's
+     depth + tilt so the scene reads as the original 2D composition. */
+  .stage{--camX:0px;--camY:0px;--camRX:0deg;--camRY:0deg;perspective:none}
+  .plane,.type,.demo,.schematic,.face,.face-wash{
+    --z:0px;--par:0;--tiltX:0;--tiltY:0;will-change:auto}
+  /* the WebGL relief canvas never runs under reduced-motion — hide it, the
+     crisp <img> backdrop carries the face flat. */
+  .face-gl{display:none!important}
 }
 </style>
 </head>
@@ -606,6 +709,12 @@ html,body{
 
       <!-- the swarm particle canvas (behind everything content-y) -->
       <canvas class="swarm" id="swarm" width="1280" height="720"></canvas>
+
+      <!-- face RELIEF — shared raw-WebGL canvas, renders the resting face with
+           luminance-driven volume + a slow moving key light. Sits on the face
+           plane over the crisp <img>. Hidden until JS confirms WebGL + an
+           untainted texture; otherwise the <img> carries the face flat. -->
+      <canvas class="face-gl" id="faceGL" width="588" height="252" aria-hidden="true"></canvas>
 
       <!-- blueprint schematic — faint daily-loop wireframe, draws itself in.
            Texture/atmosphere only (Specter grammar #2). No narrative text. -->
@@ -889,6 +998,61 @@ html,body{
     curTempRGB = TEMP_RGB[name] || TEMP_RGB.orange;
   }
 
+  /* ============================================================
+     VIRTUAL CAMERA — the 2.5D depth driver. A single slow Lissajous
+     drift (different X/Y periods so the path never repeats tightly) plus a
+     decaying impulse "kick" fired on each scene cut. Writes four CSS vars on
+     .stage that every depth plane reads × its own parallax/tilt factor. One
+     source of truth, zero per-element JS animation, and it rides the existing
+     rAF clock — no second loop. Amplitudes are deliberately small: a few px of
+     drift, a couple degrees of tilt. Editorial breathing, not a 3D ride.
+     ============================================================ */
+  const cam = {
+    ax:9, ay:6,            // drift amplitude px (X wider than Y — landscape feel)
+    rx:1.1, ry:1.5,        // tilt amplitude deg (Y/yaw a touch stronger)
+    px:17000, py:13000,    // drift periods ms (coprime-ish → long non-repeat)
+    prx:21000, pry:15500,  // tilt periods ms
+    kx:0, ky:0, kdecay:0   // current kick offset + its remaining envelope
+  };
+  // a scene cut nudges the camera — a small lateral impulse that eases out,
+  // so the planes "settle" into each new beat instead of sitting dead-still.
+  function camKick(dir){
+    if(REDUCED) return;
+    const s = dir==='r2l' ? -1 : 1;
+    cam.kx = s * 11;       // px lateral impulse
+    cam.ky = -5;           // slight lift
+    cam.kdecay = 1;        // full envelope, decays toward 0 each frame
+  }
+  function updateCamera(elapsed, dt){
+    if(REDUCED){
+      stage.style.setProperty('--camX','0px'); stage.style.setProperty('--camY','0px');
+      stage.style.setProperty('--camRX','0deg'); stage.style.setProperty('--camRY','0deg');
+      return;
+    }
+    const TWO=Math.PI*2;
+    // base Lissajous drift + tilt
+    let x = Math.sin(elapsed/cam.px*TWO)*cam.ax + Math.sin(elapsed/(cam.px*0.37)*TWO)*cam.ax*0.22;
+    let y = Math.cos(elapsed/cam.py*TWO)*cam.ay + Math.sin(elapsed/(cam.py*0.51)*TWO)*cam.ay*0.2;
+    const rX = Math.cos(elapsed/cam.prx*TWO)*cam.rx;   // pitch tracks vertical drift
+    const rY = Math.sin(elapsed/cam.pry*TWO)*cam.ry;   // yaw tracks horizontal drift
+    // fold in the decaying scene-cut kick
+    if(cam.kdecay>0.001){
+      x += cam.kx*cam.kdecay;
+      y += cam.ky*cam.kdecay;
+      cam.kdecay += (0 - cam.kdecay)*0.06*dt;           // ease the impulse out
+    }
+    stage.style.setProperty('--camX', x.toFixed(2)+'px');
+    stage.style.setProperty('--camY', y.toFixed(2)+'px');
+    stage.style.setProperty('--camRX', rX.toFixed(3)+'deg');
+    stage.style.setProperty('--camRY', rY.toFixed(3)+'deg');
+    camPx.x = x; camPx.y = y;            // numeric drift for the canvas swarm parallax
+    // expose normalised light-drift to the WebGL relief (−1..1, slow)
+    camLight.x = Math.sin(elapsed/cam.prx*TWO)*0.6;
+    camLight.y = Math.cos(elapsed/cam.pry*TWO)*0.6;
+  }
+  const camLight = {x:0.35, y:0.5};   // virtual key-light direction for the face relief
+  const camPx = {x:0, y:0};           // current camera drift in px (read by the swarm)
+
   /* ---- element refs ---- */
   const scenes   = Array.from(document.querySelectorAll('.scene'));
   const flash    = document.getElementById('flash');
@@ -956,6 +1120,7 @@ html,body{
      Vary direction per cut so it reads mechanical, not repetitive. */
   function blockWipe(dir, dur){
     if(REDUCED) return;
+    camKick(dir);                        // nudge the virtual camera on the cut
     dur = dur || 0.40;
     const a   = dir==='r2l' ? 'blkR2L'      : 'blkL2R';
     const ae  = dir==='r2l' ? 'blkEdgeR2L'  : 'blkEdgeL2R';
@@ -969,6 +1134,7 @@ html,body{
      vary the wipe vocabulary on a few cuts (Specter mixes block shapes). */
   function blockExpand(dur){
     if(REDUCED) return;
+    camKick('l2r');                      // nudge the virtual camera on the cut
     dur = dur || 0.42;
     blk.style.transformOrigin = 'center';
     blk.style.animation='none'; blkEdge.style.animation='none';
@@ -1014,6 +1180,203 @@ html,body{
     schematic.classList.add('on');
   }
   function schematicHide(){ if(schematic) schematic.classList.remove('on'); }
+
+  /* ============================================================
+     FACE RELIEF — raw WebGL (no library). Renders the resting dithered face
+     as a shallow embossed surface: the image luminance is the height field, a
+     fragment-shader emboss computes a normal from the local gradient, a slow
+     moving virtual key light shades it, and a small luminance×camera parallax
+     offset gives the stipple genuine volume. The 1-bit character is preserved
+     (we blend the relief back over the original dots, never smear them); the
+     near-black ground stays black so figure-ground fusion (Rule 35) holds.
+
+     Self-contained + bulletproof: if WebGL is missing, the shader fails to
+     build, or the texture can't be used (e.g. file:// taint), glActive stays
+     false → the canvas never shows and the crisp <img> carries the face flat.
+     Zero regression to the existing promo in every failure path.
+     ============================================================ */
+  const faceGL = (function(){
+    const canvas = document.getElementById('faceGL');
+    const api = {
+      active:false, ready:false,
+      setFace(){}, setAside(){}, show(){}, hide(){}, render(){}
+    };
+    if(!canvas || REDUCED) return api;
+
+    let gl=null;
+    try{
+      gl = canvas.getContext('webgl', {alpha:true, premultipliedAlpha:false, antialias:false})
+        || canvas.getContext('experimental-webgl', {alpha:true, premultipliedAlpha:false, antialias:false});
+    }catch(e){ gl=null; }
+    if(!gl) return api;                 // no WebGL → <img> carries the face
+
+    // --- shaders ------------------------------------------------------
+    const VERT = `
+      attribute vec2 aPos;
+      varying vec2 vUv;
+      void main(){
+        vUv = vec2(aPos.x*0.5+0.5, 1.0 - (aPos.y*0.5+0.5));  // flip Y for image space
+        gl_Position = vec4(aPos, 0.0, 1.0);
+      }`;
+    // emboss + moving key light + luminance-parallax. Cheap: 5 taps.
+    const FRAG = `
+      precision mediump float;
+      varying vec2 vUv;
+      uniform sampler2D uTex;
+      uniform vec2  uTexel;     // 1/size
+      uniform vec2  uLight;     // moving key-light direction (xy)
+      uniform vec2  uParallax;  // camera-driven uv shift scale
+      uniform float uOpacity;
+      float lum(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
+      void main(){
+        // height field = luminance; parallax-shift brighter (higher) texels more
+        float h0 = lum(texture2D(uTex, vUv).rgb);
+        vec2 uv = vUv + uParallax * (h0 - 0.35);
+        vec3 base = texture2D(uTex, uv).rgb;
+        float h  = lum(base);
+        // local gradient → surface normal (Sobel-lite, 4 taps)
+        float hx1 = lum(texture2D(uTex, uv + vec2(uTexel.x,0.0)).rgb);
+        float hx0 = lum(texture2D(uTex, uv - vec2(uTexel.x,0.0)).rgb);
+        float hy1 = lum(texture2D(uTex, uv + vec2(0.0,uTexel.y)).rgb);
+        float hy0 = lum(texture2D(uTex, uv - vec2(0.0,uTexel.y)).rgb);
+        vec3 N = normalize(vec3((hx0-hx1)*2.2, (hy0-hy1)*2.2, 1.0));
+        vec3 L = normalize(vec3(uLight, 0.85));
+        float diff = max(dot(N, L), 0.0);
+        // shade: keep the dot structure (h), lift lit slopes, deepen shadowed
+        // ones. rim term adds a faint edge-light on steep facets.
+        float rim  = pow(1.0 - max(N.z,0.0), 2.0) * 0.5;
+        float shade = h * (0.66 + 0.62*diff) + rim*h;
+        shade = clamp(shade, 0.0, 1.3);
+        vec3 col = base * (shade / max(h, 0.001));   // re-tint without killing colour
+        // near-black ground stays black (figure-ground fusion) — fade alpha with luminance
+        float a = smoothstep(0.04, 0.22, h) * uOpacity;
+        gl_FragColor = vec4(col, a);
+      }`;
+
+    function compile(type, src){
+      const sh = gl.createShader(type);
+      gl.shaderSource(sh, src); gl.compileShader(sh);
+      if(!gl.getShaderParameter(sh, gl.COMPILE_STATUS)){ gl.deleteShader(sh); return null; }
+      return sh;
+    }
+    let prog=null;
+    try{
+      const vs=compile(gl.VERTEX_SHADER,VERT), fs=compile(gl.FRAGMENT_SHADER,FRAG);
+      if(vs&&fs){
+        prog=gl.createProgram();
+        gl.attachShader(prog,vs); gl.attachShader(prog,fs); gl.linkProgram(prog);
+        if(!gl.getProgramParameter(prog, gl.LINK_STATUS)) prog=null;
+      }
+    }catch(e){ prog=null; }
+    if(!prog) return api;                // shader build failed → <img> fallback
+
+    gl.useProgram(prog);
+    // fullscreen quad
+    const buf=gl.createBuffer();
+    gl.bindBuffer(gl.ARRAY_BUFFER, buf);
+    gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1,-1, 1,-1, -1,1, 1,1]), gl.STATIC_DRAW);
+    const aPos=gl.getAttribLocation(prog,'aPos');
+    gl.enableVertexAttribArray(aPos);
+    gl.vertexAttribPointer(aPos,2,gl.FLOAT,false,0,0);
+    const uTex=gl.getUniformLocation(prog,'uTex');
+    const uTexel=gl.getUniformLocation(prog,'uTexel');
+    const uLight=gl.getUniformLocation(prog,'uLight');
+    const uParallax=gl.getUniformLocation(prog,'uParallax');
+    const uOpacity=gl.getUniformLocation(prog,'uOpacity');
+    gl.enable(gl.BLEND);
+    gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+    gl.clearColor(0,0,0,0);
+
+    // one texture, swapped per face. nearest filtering keeps the 1-bit dots crisp.
+    const tex=gl.createTexture();
+    gl.bindTexture(gl.TEXTURE_2D, tex);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+    gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+
+    const texCache={};                  // src -> true once uploaded OK
+    const imgs={};
+    let curSrc=null, texW=420, texH=180, opacity=0, opacityTarget=0, lostCtx=false;
+
+    canvas.addEventListener('webglcontextlost', (e)=>{ e.preventDefault(); lostCtx=true; api.active=false; }, false);
+
+    function uploadTex(img){
+      try{
+        gl.bindTexture(gl.TEXTURE_2D, tex);
+        gl.pixelStorei(gl.UNPACK_FLIP_Y_WEBGL, false);
+        gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGB, gl.RGB, gl.UNSIGNED_BYTE, img);
+        // a draw-time error here (e.g. tainted) surfaces via getError → bail
+        if(gl.getError() !== gl.NO_ERROR) return false;
+        texW=img.naturalWidth||420; texH=img.naturalHeight||180;
+        return true;
+      }catch(e){ return false; }
+    }
+
+    api.setFace = function(src){
+      if(lostCtx || !src) return;
+      if(curSrc===src && texCache[src]) return;
+      const cached=imgs[src];
+      if(cached && cached.complete && cached.naturalWidth){
+        if(uploadTex(cached)){ texCache[src]=true; curSrc=src; api.ready=true; }
+        return;
+      }
+      const img=new Image();
+      try{ img.crossOrigin='anonymous'; }catch(e){}
+      img.onload=()=>{ imgs[src]=img; if(uploadTex(img)){ texCache[src]=true; curSrc=src; api.ready=true; } };
+      img.onerror=()=>{};               // stays inactive → <img> fallback
+      img.src=src;
+      imgs[src]=img;
+    };
+    api.setAside = function(aside){ canvas.classList.toggle('aside', !!aside); };
+    api.show = function(){ opacityTarget=1; };
+    api.hide = function(){ opacityTarget=0; };
+
+    api.render = function(dt){
+      if(lostCtx) return;
+      // ease the relief opacity (matches the <img>'s CSS fade cadence)
+      opacity += (opacityTarget - opacity)*0.08*(dt||1);
+      canvas.style.opacity = opacity.toFixed(3);
+      if(opacity < 0.01 || !api.ready){ return; }
+      gl.viewport(0,0,canvas.width,canvas.height);
+      gl.clear(gl.COLOR_BUFFER_BIT);
+      gl.useProgram(prog);
+      gl.activeTexture(gl.TEXTURE0);
+      gl.bindTexture(gl.TEXTURE_2D, tex);
+      gl.uniform1i(uTex, 0);
+      gl.uniform2f(uTexel, 1/texW, 1/texH);
+      gl.uniform2f(uLight, camLight.x, camLight.y);
+      // parallax scale in UV space — tiny; brighter texels shift, giving volume
+      gl.uniform2f(uParallax, camLight.x*0.010, camLight.y*0.010);
+      gl.uniform1f(uOpacity, 1.0);
+      gl.drawArrays(gl.TRIANGLE_STRIP, 0, 4);
+    };
+
+    api.active = true;
+    return api;
+  })();
+
+  // bridge the loop's renderFaceGL() call to the module (kept as a free fn so
+  // the try/catch in loop() guards it even if the module short-circuited)
+  let faceGLLastTs = 0;
+  function renderFaceGL(ts){
+    if(!faceGL.active) return;
+    const dt = Math.min(40, ts-faceGLLastTs||16)/16.7; faceGLLastTs = ts;
+    faceGL.render(dt);
+  }
+  /* turn the relief ON over a given face <img>: swap texture, match aside vs
+     centred, fade the relief up + dim the flat <img> beneath it. No-op (and
+     the <img> keeps its own opacity) when WebGL is inactive — zero regression. */
+  function reliefOn(src, aside, imgEl){
+    if(!faceGL.active){ return; }
+    faceGL.setFace(src); faceGL.setAside(aside); faceGL.show();
+    if(imgEl) imgEl.classList.add('relief-on');
+  }
+  function reliefOff(imgEl){
+    if(!faceGL.active){ return; }
+    faceGL.hide();
+    if(imgEl) imgEl.classList.remove('relief-on');
+  }
 
   /* ============================================================
      SWARM PARTICLE SYSTEM — the V2 signature.
@@ -1204,6 +1567,11 @@ html,body{
       // organic jitter
       p.ph += 0.05*dt;
       const jx = Math.cos(p.ph)*0.5, jy = Math.sin(p.ph*1.3)*0.5;
+      // 2.5D depth: parallax each particle by the camera drift. Dimmer/smaller
+      // dots read as further back → drift more (mirrors the deep face plane);
+      // the hot core dots sit forward → drift less. Cheap: two multiplies.
+      const depth = 2.0 - p.sz;                 // ~0.3 (hot) .. ~0.9 (cool)
+      const px = camPx.x * depth * 1.4, py = camPx.y * depth * 1.4;
       // alpha eases toward target alpha
       p.a += (p.ta - p.a)*0.12*dt;
       const al = p.a * swarmGain;
@@ -1212,12 +1580,12 @@ html,body{
       ctx.globalAlpha = Math.min(1, al);
       const s = p.sz;
       ctx.fillStyle = `rgb(${r},${g},${b})`;
-      ctx.fillRect((p.x+jx)|0, (p.y+jy)|0, s, s);
+      ctx.fillRect((p.x+jx+px)|0, (p.y+jy+py)|0, s, s);
       // a brighter core dot for the hottest particles
       if(p.sz>1.5){
         ctx.globalAlpha = Math.min(1, al*0.8);
         ctx.fillStyle='#fff';
-        ctx.fillRect((p.x+jx)|0,(p.y+jy)|0,1,1);
+        ctx.fillRect((p.x+jx+px)|0,(p.y+jy+py)|0,1,1);
       }
     }
     ctx.globalAlpha=1;
@@ -1329,13 +1697,13 @@ html,body{
       blockWipe('l2r', .46);
       swarmAssembleFace('assets/face-train.webp', false);
     });
-    // crisp image fades in behind the converging swarm
-    at(900,  ()=>{ const f=document.getElementById('face0'); f.style.transition='opacity .9s'; f.style.opacity='1'; });
+    // crisp image fades in behind the converging swarm — relief lights it up
+    at(900,  ()=>{ const f=document.getElementById('face0'); f.style.transition='opacity .9s'; f.style.opacity='1'; reliefOn('assets/face-train.webp', false, f); });
     at(1150, ()=>{ const w=document.getElementById('wash0'); if(w) w.style.opacity='.5'; });
     at(1250, ()=> play(document.getElementById('kick0'),'anim-flicker'));
     at(2700, ()=> swarmDisperse());          // scatter back into a swarm
     // hard block-wipe (right-to-left) carries us out of boot into the title
-    at(2820, ()=>{ blockWipe('r2l', .42); const f=document.getElementById('face0'); f.style.transition='opacity .3s'; f.style.opacity='0'; });
+    at(2820, ()=>{ blockWipe('r2l', .42); const f=document.getElementById('face0'); f.style.transition='opacity .3s'; f.style.opacity='0'; reliefOff(f); });
 
     /* ---------- SCENE 1 : TITLE SLAM (3.2 – 6.0s) ----------
        The grammar showcase: dither dissolve in → blueprint schematic draws
@@ -1398,7 +1766,7 @@ html,body{
         resetDemo(el);
         swarmAssembleFace(d.src, true);
       });
-      at(s0+760, ()=>{ const f=q('.face'); if(f) f.style.opacity='.46'; });   // face settles as backdrop
+      at(s0+760, ()=>{ const f=q('.face'); if(f) f.style.opacity='.46'; reliefOn(d.src, true, f); });   // face settles as backdrop, relief gives it volume
       // faint daily-loop schematic breathes in behind the demo as texture
       at(s0+900, ()=>{ schematic.classList.add('faint'); schematicReveal(); });
 
@@ -1452,8 +1820,8 @@ html,body{
       }
 
       // disperse the face into a swarm just before the cut; drop the schematic
-      // so the next block-wipe reveals onto a clean frame
-      at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; } schematicHide(); swarmDisperse(); });
+      // + the relief so the next block-wipe reveals onto a clean frame
+      at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; reliefOff(f); } schematicHide(); swarmDisperse(); });
 
       cur += LEN;
     });
@@ -1502,7 +1870,7 @@ html,body{
       swarmAssembleFace('assets/face-spar.webp', false);
       ['kick8','endmark','endline','endurl'].forEach(id=>{ document.getElementById(id).style.opacity='0'; });
     });
-    at(ESTART+600,  ()=>{ const f=document.getElementById('face8'); f.style.opacity='.30'; f.style.filter='contrast(1.1) brightness(.66)'; });
+    at(ESTART+600,  ()=>{ const f=document.getElementById('face8'); f.style.opacity='.30'; f.style.filter='contrast(1.1) brightness(.66)'; reliefOn('assets/face-spar.webp', false, f); });
     at(ESTART+160,  ()=> play(document.getElementById('kick8'),'anim-flicker'));
     at(ESTART+420,  ()=>{ play(document.getElementById('endmark'),'anim-slam'); glitchBlocks(.46); doGlitch(document.getElementById('endmark')); });
     at(ESTART+900,  ()=> play(document.getElementById('endline'),'anim-fadeup'));
@@ -1540,11 +1908,17 @@ html,body{
       idx++;
     }
 
+    // virtual camera drift (2.5D depth) — own dt so it never fights the swarm's
+    const camDt = Math.min(40, ts-camLastTs||16)/16.7; camLastTs = ts;
+    try{ updateCamera(elapsed, camDt); }catch(e){ /* depth must never crash the loop */ }
+
     try{ stepSwarm(ts); }catch(e){ /* swarm must never crash the loop */ }
+    try{ renderFaceGL(ts); }catch(e){ /* face relief must never crash the loop */ }
 
     if(elapsed >= TOTAL){ restart(); return; }
     rafId = requestAnimationFrame(loop);
   }
+  let camLastTs = 0;
 
   function restart(){
     if(rafId) cancelAnimationFrame(rafId);
@@ -1560,6 +1934,9 @@ html,body{
     [blk,blkEdge,ditherW,glitchB].forEach(el=>{ if(el) el.style.animation='none'; });
     swarmGain = 0; swarmMode='idle';
     ctx.clearRect(0,0,CW,CH);
+    // reset the 2.5D depth: hide the face relief + clear any lingering dim flags
+    faceGL.hide();
+    document.querySelectorAll('.face.relief-on').forEach(f=> f.classList.remove('relief-on'));
     buildTimeline();
     rafId = requestAnimationFrame(loop);
   }
