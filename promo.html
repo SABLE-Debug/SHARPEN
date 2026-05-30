@@ -200,7 +200,7 @@ html,body{
 /* feature scenes push the face to one side as a backdrop/identity element,
    leaving room for the pipeline demo. JS toggles .face-aside on the scene. */
 .scene.face-aside .face{
-  left:auto; right:-40px;
+  left:auto; right:-388px;
   transform:translate3d(calc(var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z)) scale(.92);
   opacity:.5;
 }
@@ -237,7 +237,7 @@ html,body{
   image-rendering:pixelated;image-rendering:crisp-edges;
   -webkit-user-drag:none;user-select:none}
 .face-gl.aside{
-  left:auto;right:-40px;
+  left:auto;right:-388px;
   transform:translate3d(calc(var(--camX) * var(--par)), calc(-50% + var(--camY) * var(--par)), var(--z)) scale(.92);
 }
 /* when the relief is live, dim the flat <img> beneath it so the volume reads */
@@ -1423,7 +1423,7 @@ html,body{
     // source faces are ~420x180 → keep that ratio. render width 980.
     const w = aside ? 980*0.92 : 980;
     const h = w * (180/420);
-    const cx = aside ? (CW - w/2 + 40) : CW/2;   // aside: shoved right (off-edge)
+    const cx = aside ? (CW - w/2 + 388) : CW/2;   // aside: shoved right (off-edge), clears the demo panel
     const cy = CH/2;
     return {w,h, x:cx-w/2, y:cy-h/2};
   }
