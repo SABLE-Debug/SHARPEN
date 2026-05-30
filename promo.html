@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily Sharpen — promo V2</title>
+<title>Daily Sharpen — promo V3</title>
 <link rel="icon" href="data:,">
 
 <!-- The only permitted external resource: Cormorant Garamond display serif. -->
@@ -37,6 +37,7 @@
   --temp-soft:#FF8B4A;
   --pixel:'Departure Mono','Geist Mono','SF Mono',Menlo,Consolas,monospace;
   --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
 }
 
 *{margin:0;padding:0;box-sizing:border-box}
@@ -197,93 +198,178 @@ html,body{
 .feat-tag{text-shadow:0 2px 8px rgba(0,0,0,.92)}
 
 /* ============================================================
-   PIPELINE DEMO PANEL  (the V2 core — show the product working)
-   A stylized mock-UI, iconic + readable, NOT full app fidelity.
-   Sits left-of-centre; the dithered face is the backdrop to its right.
+   THE REAL SHARPEN APP, IN MOTION  (the V3 core upgrade)
+   These classes faithfully recreate index.html's components —
+   the masthead sec-head, the temp-hairline carbon card, the
+   pulsing-dot label, the flat-orange 1-bit-double-frame buttons,
+   the Spar message bubbles + stance, the word card, the sharpness
+   bar + streak. The type→think→output pipeline plays out INSIDE
+   this real-looking app, framed in a subtle device chrome so it
+   reads as a live product, not a console mock.
    ============================================================ */
-.demo{position:absolute;z-index:22;left:108px;top:50%;
+
+/* device frame — a clean phone-ish panel the app lives inside, sat left.
+   The dithered face is the backdrop to its right (face-aside). */
+.demo{position:absolute;z-index:22;left:96px;top:50%;
   width:600px;transform:translateY(-50%);
   pointer-events:none;text-align:left}
-.demo-head{display:flex;align-items:center;gap:12px;margin-bottom:20px}
-.demo-num{font-family:var(--pixel);font-size:12px;letter-spacing:.3em;
-  color:var(--temp);text-transform:uppercase;transition:color .2s;
-  text-shadow:0 2px 8px rgba(0,0,0,.9)}
-.demo-title{font-family:var(--pixel);font-size:30px;letter-spacing:.14em;
-  color:var(--ink);text-transform:uppercase;line-height:1;
-  text-shadow:0 3px 14px rgba(0,0,0,.95),0 0 22px color-mix(in srgb,var(--temp) 40%,transparent)}
-
-/* the mock console card */
-.card{position:relative;background:rgba(8,8,8,.82);
-  border:1px solid color-mix(in srgb,var(--temp) 34%,rgba(255,255,255,.07));
-  border-radius:9px;padding:20px 22px;
-  box-shadow:0 18px 60px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4),
+.app{position:relative;background:var(--bg);
+  border:1px solid #262626;border-radius:14px;padding:22px 22px 20px;
+  box-shadow:0 30px 80px rgba(0,0,0,.62),0 0 0 1px rgba(0,0,0,.5),
+    0 0 0 7px rgba(14,14,14,.9),0 0 0 8px rgba(255,106,0,.10),
     inset 0 1px 0 rgba(255,255,255,.04);
-  backdrop-filter:blur(3px);min-height:188px;transition:border-color .2s}
-/* tiny window dots, technical chrome */
-.card::before{content:"";position:absolute;top:13px;left:16px;width:7px;height:7px;
-  border-radius:50%;background:var(--temp);box-shadow:14px 0 0 rgba(255,255,255,.14),28px 0 0 rgba(255,255,255,.14);
-  opacity:.8;transition:background .2s}
+  min-height:300px}
+/* the app's own ambient: faint temp ember + dither, like the real .ambient */
+.app::before{content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  background:radial-gradient(120% 90% at 8% 0%,color-mix(in srgb,var(--temp) 12%,transparent),transparent 55%);
+  opacity:.7;z-index:0}
+.app > *{position:relative;z-index:1}
 
-/* the input row (where the user types) */
-.io-label{font-family:var(--pixel);font-size:10px;letter-spacing:.26em;
-  color:var(--mid);text-transform:uppercase;margin:6px 0 9px}
-.input-row{display:flex;align-items:center;gap:10px;
-  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);
-  border-radius:6px;padding:13px 15px;margin-bottom:6px;min-height:50px}
-.input-arrow{font-family:var(--pixel);font-size:15px;color:var(--temp);transition:color .2s}
-.input-text{font-family:var(--pixel);font-size:21px;color:var(--ink);
-  letter-spacing:.01em;white-space:pre;line-height:1}
+/* masthead = real .sec-head : mono kicker + right index, hairline + temp tick */
+.app-head{display:flex;align-items:baseline;gap:12px;
+  padding-bottom:11px;margin-bottom:16px;border-bottom:1px solid #262626;position:relative}
+.app-head::after{content:"";position:absolute;left:0;bottom:-1px;width:34px;height:1px;
+  background:var(--temp);box-shadow:0 0 7px 0 var(--temp);opacity:.85;transition:background .2s}
+.sh-k{font-family:var(--pixel);font-size:13px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--temp);transition:color .2s}
+.sh-x{margin-left:auto;font-family:var(--pixel);font-size:12px;letter-spacing:.16em;color:#5f646b}
+
+/* real .card body inside the app — flat carbon, temp top-hairline */
+.panel{position:relative;background:#141414;border:1px solid #262626;border-radius:0;
+  padding:16px;overflow:hidden}
+.panel + .panel{margin-top:10px}
+.panel::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;z-index:2;
+  background:linear-gradient(90deg,transparent,var(--temp),transparent);opacity:.35;transition:background .2s}
+
+/* real .lbl — mono, temp, with the breathing accent dot before it */
+.io-label{display:flex;align-items:center;font-family:var(--pixel);font-size:11px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--temp);line-height:1.3;margin-bottom:11px;transition:color .2s}
+.io-label::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--temp);
+  margin-right:8px;flex:none;box-shadow:0 0 7px 1px color-mix(in srgb,var(--temp) 55%,transparent);
+  animation:lblPulse 3.4s cubic-bezier(.4,0,.2,1) infinite;transition:background .2s}
+@keyframes lblPulse{0%,100%{opacity:.9}50%{opacity:1}}
+
+/* the real textarea/input the user types into — #1c1c1c, inset double-frame */
+.field{position:relative;background:#1c1c1c;border:1px solid #262626;border-radius:0;
+  padding:13px 14px;min-height:50px;display:flex;align-items:center;
+  box-shadow:inset 0 0 0 2px #1c1c1c,inset 0 0 0 3px #262626;transition:border-color .2s,box-shadow .2s}
+.field.active{border-color:var(--temp);box-shadow:inset 0 0 0 2px #1c1c1c,inset 0 0 0 3px var(--temp)}
+.input-text{font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-size:18px;color:var(--ink);
+  letter-spacing:.005em;white-space:pre-wrap;line-height:1.25}
 .input-text .typed{color:var(--ink)}
-/* blinking caret */
-.caret{display:inline-block;width:11px;height:23px;margin-left:1px;
+.input-text.placeholder{color:#5f646b;font-style:italic}
+/* blinking caret — thin like a real text cursor */
+.caret{display:inline-block;width:2px;height:20px;margin-left:1px;
   background:var(--temp);vertical-align:-4px;transition:background .2s;
   animation:caretBlink .9s steps(1) infinite}
 @keyframes caretBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
 .caret.solid{animation:none;opacity:1}
 .caret.off{display:none}
 
-/* model "thinking" row */
-.think{display:flex;align-items:center;gap:11px;margin-top:16px;
-  font-family:var(--pixel);font-size:13px;letter-spacing:.12em;
+/* the real flat-orange button with the 1-bit inset double-frame */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-weight:700;font-size:15px;
+  background:var(--temp);color:#0A0A0A;border-radius:0;padding:12px 16px;margin-top:11px;
+  box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px rgba(10,10,10,.55);
+  transition:background .2s,box-shadow .2s,transform .12s;position:relative;overflow:hidden}
+.btn.ghost{background:transparent;color:var(--ink);
+  box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px #262626}
+.btn.pressed{transform:translateY(1px) scale(.985)}
+/* sheen sweep when the model "runs" */
+.btn .sheen{position:absolute;top:0;bottom:0;width:42%;left:-60%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.30),transparent);
+  transform:skewX(-18deg);opacity:0}
+.btn.run .sheen{animation:btnSheen .6s ease-out}
+@keyframes btnSheen{0%{left:-60%;opacity:1}100%{left:130%;opacity:1}}
+
+/* model "thinking" row — three pulsing temp dots, like the real typing bubble */
+.think{display:flex;align-items:center;gap:11px;margin-top:14px;
+  font-family:var(--pixel);font-size:12px;letter-spacing:.12em;
   color:var(--temp);text-transform:uppercase;opacity:0;transition:color .2s}
 .think .dots{display:inline-flex;gap:5px}
 .think .dots i{width:7px;height:7px;border-radius:50%;background:var(--temp);
-  display:inline-block;animation:thinkPulse 1s ease-in-out infinite;transition:background .2s}
-.think .dots i:nth-child(2){animation-delay:.16s}
-.think .dots i:nth-child(3){animation-delay:.32s}
-@keyframes thinkPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+  display:inline-block;animation:thinkPulse 1.25s cubic-bezier(.4,0,.2,1) infinite;transition:background .2s}
+.think .dots i:nth-child(2){animation-delay:.18s}
+.think .dots i:nth-child(3){animation-delay:.36s}
+@keyframes thinkPulse{0%,60%,100%{opacity:.28;transform:translateY(0) scale(.85)}30%{opacity:1;transform:translateY(-4px) scale(1)}}
 
-/* output block — the model's response. swarm-assembles in. */
-.out{margin-top:16px;opacity:0}
-.out-text{font-family:var(--serif);font-size:25px;line-height:1.28;color:var(--ink);
-  font-style:italic}
+/* the real .fb feedback block — left temp border, dim body, ink/temp highlights */
+.out{margin-top:14px;opacity:0}
+.fb{font-size:16px;line-height:1.5;border-left:2px solid var(--temp);padding:4px 0 4px 12px;
+  color:#8a8f96;font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);transition:border-color .2s}
+.fb b{color:var(--ink);font-weight:600}
+.fb .stat{color:var(--temp);font-weight:700;transition:color .2s}
+.out-text{font-family:var(--serif);font-size:22px;line-height:1.32;color:var(--ink);font-style:italic}
 .out-text b{font-style:normal;font-weight:600;color:var(--temp);transition:color .2s}
-.out-mono{font-family:var(--pixel);font-size:20px;letter-spacing:.04em;color:var(--ink);
-  line-height:1.4}
-.out-mono .arrow{color:var(--temp);margin:0 10px;transition:color .2s}
-.out-mono .gloss{color:var(--temp-soft);transition:color .2s}
 
-/* result tag — the "owned / got it / done" stamp */
-.tag{display:inline-flex;align-items:center;gap:8px;margin-top:16px;
+/* SPAR — real message bubbles + stance card */
+.stance{position:relative;background:linear-gradient(180deg,#1d1611,#181109);
+  border:1px solid #3a2a18;border-radius:0;padding:10px 13px;overflow:hidden}
+.stance::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--temp);box-shadow:0 0 10px 0 var(--temp);opacity:.7;transition:background .2s}
+.stance .st-lbl{font-family:var(--pixel);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--temp);margin-bottom:4px;transition:color .2s}
+.stance .st-pt{font-family:var(--serif);font-size:17px;color:var(--ink);line-height:1.25}
+.msg{padding:10px 13px;border-radius:0;font-size:15px;max-width:90%;
+  font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);line-height:1.4}
+.msg.you{background:#1c1c1c;border:1px solid #262626;margin-left:auto;text-align:left}
+.msg.ai{background:#1a1410;border:1px solid #3a2a18;margin-right:auto}
+.msg.ai b{color:var(--temp);font-weight:600;transition:color .2s}
+.msg-typing{display:inline-flex;align-items:center;gap:5px;padding:13px 15px;
+  background:#1a1410;border:1px solid #3a2a18;border-radius:0;margin-right:auto}
+.msg-typing i{width:7px;height:7px;border-radius:50%;background:var(--temp);display:inline-block;
+  animation:thinkPulse 1.25s cubic-bezier(.4,0,.2,1) infinite;transition:background .2s}
+.msg-typing i:nth-child(2){animation-delay:.18s}.msg-typing i:nth-child(3){animation-delay:.36s}
+.msg-stack{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+
+/* WORDS — the real word card row */
+.word{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:4px 0}
+.word .up{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);line-height:1.1}
+.word .up .eq{color:#8a8f96;font-weight:400}
+.word .ex{font-size:13px;color:#5f646b;font-style:italic;margin-top:6px;
+  font-family:var(--sans,-apple-system,'Segoe UI',sans-serif)}
+.word-actions{display:flex;flex-direction:column;gap:6px;flex:none}
+.say{font-family:var(--pixel);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--temp);border:1px solid #262626;padding:2px 9px;display:inline-block;transition:color .2s}
+.word-count{font-family:var(--pixel);font-size:11px;letter-spacing:.04em;color:#5f646b;margin-bottom:11px}
+
+/* PROGRESS — real sharpness big-number + bar + streak stat cluster */
+.big{font-family:var(--serif);font-size:64px;font-weight:600;color:var(--ink);line-height:1;
+  letter-spacing:.01em;text-shadow:0 0 22px color-mix(in srgb,var(--temp) 16%,transparent);transition:color .2s}
+.big .slash{font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-size:18px;color:#8a8f96;font-weight:400}
+.bar{height:10px;background:#1c1c1c;border:1px solid #262626;border-radius:0;overflow:hidden;margin:14px 0 6px;position:relative}
+.bar > i{display:block;height:100%;width:0;background:var(--temp);transition:width .9s cubic-bezier(.22,1,.36,1);position:relative;overflow:hidden}
+.bar > i::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:translateX(-100%);animation:barSheen 2.6s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes barSheen{to{transform:translateX(100%)}}
+.spark-wrap{margin-top:6px;position:relative;height:64px}
+.spark{position:absolute;inset:0}
+.spark path{fill:none;stroke:var(--temp);stroke-width:2.2;
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--temp) 55%,transparent));
+  stroke-dasharray:1;stroke-dashoffset:1;transition:stroke .2s}
+.spark .axis{stroke:rgba(255,255,255,.1);stroke-width:1;filter:none}
+.stat-row{display:flex;gap:12px;margin-top:14px}
+.stat-cell{flex:1}
+.stat-cell .lbl{display:flex;align-items:center;font-family:var(--pixel);font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--temp);margin-bottom:5px;transition:color .2s}
+.stat-cell .lbl::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--temp);
+  margin-right:6px;flex:none;transition:background .2s}
+.stat-cell .num{font-family:var(--serif);font-size:34px;font-weight:600;color:var(--ink);line-height:1;transition:color .2s}
+.stat-cell .cap{font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-size:11px;color:#5f646b;margin-top:3px}
+
+/* result tag — the "owned / got it / done" stamp, sits under the panel */
+.tag{display:inline-flex;align-items:center;gap:8px;margin-top:14px;
   font-family:var(--pixel);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
   color:var(--temp);border:1px solid color-mix(in srgb,var(--temp) 50%,transparent);
-  border-radius:5px;padding:7px 13px;opacity:0;transition:color .2s,border-color .2s;
+  border-radius:0;padding:7px 13px;opacity:0;transition:color .2s,border-color .2s;
   box-shadow:0 0 16px color-mix(in srgb,var(--temp) 14%,transparent) inset}
 .tag .chk{color:var(--temp);font-weight:700}
 
-/* progress demo: the sharpness line + rolling counter */
-.spark-wrap{margin-top:8px;position:relative;height:96px}
-.spark{position:absolute;inset:0}
-.spark path{fill:none;stroke:var(--temp);stroke-width:2.4;
-  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--temp) 60%,transparent));
-  stroke-dasharray:1;stroke-dashoffset:1;transition:stroke .2s}
-.spark .axis{stroke:rgba(255,255,255,.1);stroke-width:1;filter:none}
-.counter-row{display:flex;align-items:baseline;gap:14px;margin-top:18px}
-.counter{font-family:var(--serif);font-weight:700;font-style:italic;font-size:74px;
-  color:var(--temp);line-height:.9;letter-spacing:-.01em;transition:color .2s;
+/* counter (legacy id kept for the stat-beat amplification) */
+.counter{font-family:var(--serif);font-weight:600;font-size:64px;
+  color:var(--temp);line-height:.9;letter-spacing:.01em;transition:color .2s;
   text-shadow:0 0 34px color-mix(in srgb,var(--temp) 40%,transparent)}
-.counter-cap{font-family:var(--pixel);font-size:13px;letter-spacing:.2em;
-  text-transform:uppercase;color:var(--mid);line-height:1.4}
 
 /* ---- value-stack scene -------------------------------------------- */
 .vstack{position:absolute;inset:0;z-index:20;
@@ -369,6 +455,11 @@ html,body{
   100%{opacity:1;transform:translateY(0) scale(1)}}
 .anim-counter{animation:counterPop .4s cubic-bezier(.2,1.3,.3,1) forwards}
 
+/* stat-beat amplification — the streak cell punches confidently (counter moment) */
+@keyframes statPop{0%{transform:scale(1)}38%{transform:scale(1.16)}100%{transform:scale(1)}}
+.anim-statpop{animation:statPop .5s cubic-bezier(.2,1.3,.3,1)}
+.anim-statpop .num{color:var(--temp);text-shadow:0 0 26px color-mix(in srgb,var(--temp) 55%,transparent)}
+
 /* film flash + scanline wipe (kept from V1, used sparingly) */
 @keyframes flashPop{0%{opacity:0}12%{opacity:.85}100%{opacity:0}}
 @keyframes swipePop{0%{background-position:120% 0;opacity:0}
@@ -398,9 +489,11 @@ html,body{
 
 /* reduced-motion: collapse motion to instant, keep the show legible */
 @media (prefers-reduced-motion:reduce){
-  .grain,.hud-dot,.caret,.think .dots i{animation:none}
+  .grain,.hud-dot,.caret,.think .dots i,.io-label::before,.msg-typing i,
+  .bar > i::after,.btn .sheen,.btn.run .sheen{animation:none}
   .anim-flicker,.anim-slam,.anim-punch,.anim-fadeup,.anim-fadein,
-  .anim-cardin,.anim-rgb,.anim-counter{animation-duration:.001s}
+  .anim-cardin,.anim-rgb,.anim-counter,.anim-statpop{animation-duration:.001s}
+  .bar > i{transition-duration:.001s}
   .caret{opacity:1}
   .face{image-rendering:auto}
 }
@@ -445,25 +538,26 @@ html,body{
         </div>
       </section>
 
-      <!-- ============ SCENES 2-6 : PIPELINE DEMOS (face = backdrop) ============ -->
+      <!-- ============ SCENES 2-6 : THE REAL SHARPEN APP, IN MOTION ============ -->
+      <!-- Each demo is a faithful recreation of an index.html panel, framed in a
+           subtle device chrome. The type → think → output pipeline plays INSIDE
+           the real-looking UI. Face = dithered identity backdrop (face-aside). -->
+
       <!-- 02 · LEARN ------------------------------------------------ -->
       <section class="scene feature" data-scene="2">
         <img class="face" alt="" src="assets/face-learn.webp">
         <div class="face-wash"></div>
         <div class="demo" data-demo="learn">
-          <div class="demo-head">
-            <span class="demo-num">FEATURE 01</span>
-            <span class="demo-title">LEARN</span>
-          </div>
-          <div class="card anim-target">
-            <div class="io-label">DROP IN A TERM</div>
-            <div class="input-row">
-              <span class="input-arrow">&gt;</span>
-              <span class="input-text"><span class="typed" data-type="CRM"></span><span class="caret"></span></span>
-            </div>
-            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>EXPLAINING IN PLAIN ENGLISH</span></div>
-            <div class="out">
-              <div class="out-text">A <b>system that tracks every customer</b> &mdash; who they are, what they bought, when you last spoke.</div>
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">LEARN</span><span class="sh-x">02 / INGEST</span></div>
+            <div class="panel">
+              <div class="io-label">DROP IN A TERM</div>
+              <div class="field"><span class="input-text"><span class="typed" data-type="CRM"></span><span class="caret"></span></span></div>
+              <div class="btn">Learn it &#9656;<span class="sheen"></span></div>
+              <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>EXPLAINING IN PLAIN ENGLISH</span></div>
+              <div class="out">
+                <div class="fb"><b>A system that tracks every customer</b> &mdash; who they are, what they bought, when you last spoke.</div>
+              </div>
             </div>
             <div class="tag" data-tag><span class="chk">&check;</span>OWNED &middot; IN YOUR DECK</div>
           </div>
@@ -475,19 +569,18 @@ html,body{
         <img class="face" alt="" src="assets/face-spar.webp">
         <div class="face-wash"></div>
         <div class="demo" data-demo="spar">
-          <div class="demo-head">
-            <span class="demo-num">FEATURE 02</span>
-            <span class="demo-title">SPAR</span>
-          </div>
-          <div class="card anim-target">
-            <div class="io-label">STATE YOUR POSITION</div>
-            <div class="input-row">
-              <span class="input-arrow">&gt;</span>
-              <span class="input-text"><span class="typed" data-type="remote work beats the office"></span><span class="caret"></span></span>
-            </div>
-            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CLAUDE IS COUNTERING</span></div>
-            <div class="out">
-              <div class="out-text"><b>&ldquo;Then why does every org you admire still fight for office time?&rdquo;</b> Proximity compounds trust faster than any call.</div>
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">SPAR</span><span class="sh-x">04 / ARENA</span></div>
+            <div class="panel">
+              <div class="io-label">STATE YOUR POSITION</div>
+              <div class="field"><span class="input-text"><span class="typed" data-type="remote work beats the office"></span><span class="caret"></span></span></div>
+              <div class="btn">Step into the ring &#9656;<span class="sheen"></span></div>
+              <div class="msg-stack">
+                <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CLAUDE IS COUNTERING</span></div>
+                <div class="out" data-spar-reply>
+                  <div class="msg ai"><b>&ldquo;Then why does every org you admire still fight for office time?&rdquo;</b> Proximity compounds trust faster than any call.</div>
+                </div>
+              </div>
             </div>
             <div class="tag" data-tag><span class="chk">&check;</span>NOW DEFEND IT</div>
           </div>
@@ -499,17 +592,26 @@ html,body{
         <img class="face" alt="" src="assets/face-words.webp">
         <div class="face-wash"></div>
         <div class="demo" data-demo="words">
-          <div class="demo-head">
-            <span class="demo-num">FEATURE 03</span>
-            <span class="demo-title">WORDS</span>
-          </div>
-          <div class="card anim-target">
-            <div class="io-label">TODAY&rsquo;S CARD &middot; 1 OF 20</div>
-            <div class="out" style="margin-top:10px">
-              <div class="out-mono" style="font-size:30px"><b style="color:var(--ink);font-weight:400">ameliorate</b></div>
-              <div class="out-mono" style="margin-top:14px"><span class="arrow">&rarr;</span><span class="gloss">improve</span> &nbsp;/&nbsp; <span class="gloss">ease</span></div>
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">WORDS</span><span class="sh-x">03 / LEXICON</span></div>
+            <div class="panel">
+              <div class="word-count">TODAY&rsquo;S CARD &middot; 1 OF 20</div>
+              <div class="out" data-word>
+                <div class="word">
+                  <div>
+                    <div class="up">ameliorate <span class="eq">: improve / ease</span></div>
+                  </div>
+                  <div class="word-actions">
+                    <span class="say">say</span>
+                  </div>
+                </div>
+              </div>
+              <div class="btn-row" style="display:flex;gap:9px">
+                <div class="btn" data-got>Got it<span class="sheen"></span></div>
+                <div class="btn ghost">Review</div>
+              </div>
+              <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>FITTING IT TO HOW YOU WRITE</span></div>
             </div>
-            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>FITTING IT TO HOW YOU WRITE</span></div>
             <div class="tag" data-tag><span class="chk">&check;</span>GOT IT</div>
           </div>
         </div>
@@ -520,20 +622,17 @@ html,body{
         <img class="face" alt="" src="assets/face-train.webp">
         <div class="face-wash"></div>
         <div class="demo" data-demo="train">
-          <div class="demo-head">
-            <span class="demo-num">FEATURE 04</span>
-            <span class="demo-title">TRAIN</span>
-          </div>
-          <div class="card anim-target">
-            <div class="io-label">DAILY DRILL &middot; RECALL</div>
-            <div class="out" style="margin-top:8px">
-              <div class="out-text" style="font-style:normal;color:var(--ink);font-size:23px">Name the cognitive bias: <b style="color:var(--ink)">we overvalue what we already own.</b></div>
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">TRAIN</span><span class="sh-x">01 / DAILY EDGE</span></div>
+            <div class="panel">
+              <div class="io-label">DAILY DRILL &middot; RECALL</div>
+              <div class="out" data-drill style="opacity:1">
+                <div class="msg ai" style="max-width:100%">Name the cognitive bias: <b>we overvalue what we already own.</b></div>
+              </div>
+              <div class="field" style="margin-top:11px"><span class="input-text"><span class="typed" data-type="endowment effect"></span><span class="caret"></span></span></div>
+              <div class="btn">Send &#9656;<span class="sheen"></span></div>
+              <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CHECKING</span></div>
             </div>
-            <div class="input-row" style="margin-top:14px">
-              <span class="input-arrow">&gt;</span>
-              <span class="input-text"><span class="typed" data-type="endowment effect"></span><span class="caret"></span></span>
-            </div>
-            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CHECKING</span></div>
             <div class="tag" data-tag><span class="chk">&check;</span>PULLED FROM MEMORY</div>
           </div>
         </div>
@@ -544,21 +643,23 @@ html,body{
         <img class="face" alt="" src="assets/face-progress.webp">
         <div class="face-wash"></div>
         <div class="demo" data-demo="progress">
-          <div class="demo-head">
-            <span class="demo-num">FEATURE 05</span>
-            <span class="demo-title">PROGRESS</span>
-          </div>
-          <div class="card anim-target">
-            <div class="io-label">SHARPNESS &middot; LAST 30 DAYS</div>
-            <div class="spark-wrap">
-              <svg class="spark" id="sparkSvg" viewBox="0 0 540 96" preserveAspectRatio="none">
-                <line class="axis" x1="0" y1="95" x2="540" y2="95"></line>
-                <path id="sparkPath" d="M2,86 C70,84 120,70 180,60 C250,48 300,40 360,28 C420,17 480,12 538,6"></path>
-              </svg>
-            </div>
-            <div class="counter-row">
-              <span class="counter" id="progCounter">0</span>
-              <span class="counter-cap">DAY<br>STREAK</span>
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">PROGRESS</span><span class="sh-x">05 / TELEMETRY</span></div>
+            <div class="panel">
+              <div class="io-label">SHARPNESS &middot; LAST 30 DAYS</div>
+              <div class="big"><span id="sharpNow">0</span><span class="slash"> / 100</span></div>
+              <div class="bar"><i id="sharpBar"></i></div>
+              <div class="spark-wrap">
+                <svg class="spark" id="sparkSvg" viewBox="0 0 540 64" preserveAspectRatio="none">
+                  <line class="axis" x1="0" y1="63" x2="540" y2="63"></line>
+                  <path id="sparkPath" d="M2,58 C70,56 120,46 180,40 C250,32 300,26 360,18 C420,11 480,8 538,4"></path>
+                </svg>
+              </div>
+              <div class="stat-row">
+                <div class="stat-cell"><div class="lbl">STREAK</div><div class="num"><span id="progCounter">0</span></div><div class="cap">DAY STREAK</div></div>
+                <div class="stat-cell"><div class="lbl">OWNED</div><div class="num" id="ownNum">0</div><div class="cap">WORDS</div></div>
+                <div class="stat-cell"><div class="lbl">DRILLS</div><div class="num" id="drillNum">0</div><div class="cap">LIFETIME</div></div>
+              </div>
             </div>
           </div>
         </div>
@@ -964,23 +1065,35 @@ html,body{
     path.style.strokeDashoffset=0;
   }
 
-  /* ---- helpers to reveal a demo card's pieces ---- */
+  /* ---- helpers to reveal a demo app-panel's pieces ---- */
   function resetDemo(sc){
     if(!sc) return;
-    sc.querySelectorAll('.card').forEach(c=>{ c.classList.remove('anim-cardin','anim-rgb'); c.style.opacity='0'; });
+    sc.querySelectorAll('.app').forEach(c=>{ c.classList.remove('anim-cardin','anim-rgb'); c.style.opacity='0'; });
     sc.querySelectorAll('.think').forEach(t=>{ t.style.opacity='0'; });
-    sc.querySelectorAll('.out').forEach(o=>{ o.style.opacity='0'; });
+    // the train drill prompt + word card start visible (data-drill / data-word);
+    // every other .out (typed outputs, spar replies, learn fb) starts hidden
+    sc.querySelectorAll('.out').forEach(o=>{
+      const keep = o.hasAttribute('data-drill') || o.hasAttribute('data-word');
+      o.style.opacity = keep ? '1' : '0';
+    });
     sc.querySelectorAll('[data-tag]').forEach(t=>{ t.style.opacity='0'; t.classList.remove('anim-fadeup'); });
     sc.querySelectorAll('[data-type]').forEach(n=>{ n.textContent=''; });
     sc.querySelectorAll('.caret').forEach(c=>{ c.classList.remove('off','solid'); });
+    sc.querySelectorAll('.field').forEach(f=>{ f.classList.remove('active'); });
+    sc.querySelectorAll('.btn').forEach(b=>{ b.classList.remove('run','pressed'); });
+    // progress: zero the bar + numbers so each loop replays clean
+    const bar=sc.querySelector('#sharpBar'); if(bar) bar.style.width='0';
+    ['sharpNow','progCounter','ownNum','drillNum'].forEach(id=>{ const n=sc.querySelector('#'+id); if(n) n.textContent='0'; });
   }
   function showEl(el, cls){ if(el){ el.style.opacity='1'; if(cls) play(el,cls); } }
+  // press a button, sheen-sweep it (the "model runs" beat)
+  function pressBtn(btn){ if(!btn) return; play(btn,'pressed'); if(!REDUCED){ btn.classList.remove('run'); void btn.offsetWidth; btn.classList.add('run'); } }
 
   /* ============================================================
      TIMELINE — array of {t (ms), fn}. A rAF clock drives it.
      V2 total ~36.4s, then loops.
      ============================================================ */
-  const TOTAL = 36400;
+  const TOTAL = 36900;
   let steps = [];
   const at = (t, fn) => steps.push({t, fn});
 
@@ -1022,80 +1135,100 @@ html,body{
     at(5650, ()=>{ doSwipe(.4); });
 
     /* ============================================================
-       PIPELINE DEMOS (6.0 – 30.6s)  ~4.9s each.
-       Each: swarm-assemble face aside → card in → type input →
-       thinking pulse → output (swarm-feel) → result tag → disperse.
+       THE REAL APP, IN MOTION (6.0 – 31.0s)  ~5.0s each.
+       Each demo plays the user's actual interaction inside a faithful
+       Sharpen panel: cut in (face swarm aside) → app frame punches in →
+       type into the real field (field lights) → button press + sheen
+       sweep ("model runs") → thinking dots → output reveals INSIDE the
+       real UI → result tag → disperse. Fast cuts within each demo.
        ============================================================ */
     const demos = [
-      {scene:2, temp:'learn',    phase:'LEARN',    src:'assets/face-learn.webp',
-       type:'CRM',                          cps:7 },
-      {scene:3, temp:'spar',     phase:'SPAR',     src:'assets/face-spar.webp',
-       type:'remote work beats the office', cps:30},
-      {scene:4, temp:'words',    phase:'WORDS',    src:'assets/face-words.webp',
-       type:null,                           cps:0,  wordCard:true},
-      {scene:5, temp:'train',    phase:'TRAIN',    src:'assets/face-train.webp',
-       type:'endowment effect',             cps:20},
-      {scene:6, temp:'progress', phase:'PROGRESS', src:'assets/face-progress.webp',
-       type:null,                           cps:0,  counter:true}
+      {scene:2, temp:'learn',    phase:'LEARN',    src:'assets/face-learn.webp', kind:'type',
+       type:'CRM',                          cps:6 },
+      {scene:3, temp:'spar',     phase:'SPAR',     src:'assets/face-spar.webp',  kind:'spar',
+       type:'remote work beats the office', cps:34},
+      {scene:4, temp:'words',    phase:'WORDS',    src:'assets/face-words.webp', kind:'words'},
+      {scene:5, temp:'train',    phase:'TRAIN',    src:'assets/face-train.webp', kind:'type',
+       type:'endowment effect',             cps:22},
+      {scene:6, temp:'progress', phase:'PROGRESS', src:'assets/face-progress.webp', kind:'progress'}
     ];
 
     let cur = 6000;
-    const LEN = 4900;
+    const LEN = 5000;
     demos.forEach((d)=>{
       const s0 = cur;
       const sc = ()=> sceneEl(d.scene);
+      const q  = (sel)=> sc().querySelector(sel);
 
-      // [t0] cut in: face swarm-assembles aside, card not yet shown
+      // [t0] hard cut: face swarm-assembles aside, app frame not yet shown
       at(s0, ()=>{
         setTemp(d.temp); hudText.textContent=d.phase;
         showOnly(d.scene);
         const el=sc(); el.classList.add('face-aside');
         const f=el.querySelector('.face'); if(f){ f.style.opacity='0'; f.style.transition='opacity .8s'; }
-        doFlash(.24); doSwipe(.4);
+        doFlash(.22); doSwipe(.4);
         resetDemo(el);
         swarmAssembleFace(d.src, true);
       });
-      // face image fades in as swarm converges
-      at(s0+780, ()=>{ const f=sc().querySelector('.face'); if(f) f.style.opacity='.5'; });
+      at(s0+760, ()=>{ const f=q('.face'); if(f) f.style.opacity='.46'; });   // face settles as backdrop
 
-      // [t+260] card punches in
-      at(s0+260, ()=>{ const c=sc().querySelector('.card'); if(c){ c.style.opacity='1'; play(c,'anim-cardin'); } });
+      // [t+240] the app frame punches in (scale-settle)
+      at(s0+240, ()=>{ const c=q('.app'); if(c){ c.style.opacity='1'; play(c,'anim-cardin'); } });
 
-      if(d.wordCard){
-        // WORDS: card content swarm-assembles (the word + gloss), then "got it"
-        at(s0+620, ()=>{ const o=sc().querySelector('.out'); showEl(o,'anim-fadein'); doGlitch(sc().querySelector('.out-mono')); });
-        at(s0+1500,()=>{ const c=sc().querySelectorAll('.caret'); c.forEach(x=>x.classList.add('off')); showEl(sc().querySelector('.think'),'anim-fadein'); });
-        at(s0+2700,()=>{ sc().querySelector('.think').style.opacity='0'; });
-        at(s0+2820,()=>{ const tg=sc().querySelector('[data-tag]'); showEl(tg,'anim-fadeup'); doGlitch(tg); punchScene(d.scene); });
-      } else if(d.counter){
-        // PROGRESS: spark line draws + counter rolls
-        at(s0+620, ()=>{ drawSpark(); });
-        at(s0+1500,()=>{ const cnt=document.getElementById('progCounter'); play(cnt,'anim-counter'); rollCounter(cnt, 30, 1200); });
-        at(s0+2900,()=>{ doGlitch(document.getElementById('progCounter')); punchScene(d.scene); });
+      if(d.kind==='words'){
+        // WORDS — the card is already there; the word "lands" (glitch), say-button
+        // pulses, then Got it presses → tag. (no typing; matches the real flow.)
+        at(s0+760,  ()=>{ doGlitch(q('.word .up')); });
+        at(s0+1900, ()=>{ const c=q('[data-got]'); pressBtn(c); showEl(q('.think'),'anim-fadein'); });
+        at(s0+3100, ()=>{ q('.think').style.opacity='0'; });
+        at(s0+3260, ()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); doGlitch(tg); punchScene(d.scene); });
+
+      } else if(d.kind==='progress'){
+        // PROGRESS — the sharpness bar fills + line draws, the 3-cell stat cluster
+        // rolls, then the STREAK number gets amplified into a confident stat beat.
+        at(s0+780, ()=>{
+          drawSpark();
+          const bar=q('#sharpBar'); if(bar) bar.style.width = '78%';
+          rollCounter(q('#sharpNow'), 78, 1100);
+        });
+        at(s0+1700,()=>{ rollCounter(q('#progCounter'), 30, 1100); rollCounter(q('#ownNum'), 214, 1200); rollCounter(q('#drillNum'), 168, 1300); });
+        // the stat beat: punch + glitch the streak number big (motionimo/Lovable energy, our style)
+        at(s0+3150,()=>{ const cell=q('.stat-cell'); if(cell){ play(cell,'anim-statpop'); } doGlitch(q('#progCounter')); punchScene(d.scene); });
+
+      } else if(d.kind==='spar'){
+        // SPAR — type the claim → ring button → "Claude is countering" typing dots →
+        // the rebuttal lands as a real AI message bubble → tag. (locked copy only.)
+        const tNode=()=> q('[data-type]'); const caret=()=> q('.caret'); const field=()=> q('.field');
+        at(s0+620, ()=>{ if(field()) field().classList.add('active'); if(caret()) caret().classList.add('solid'); typeInto(tNode(), d.type, d.cps); });
+        const typeMs = d.type.length*(1000/d.cps);
+        const ringAt = s0 + 700 + Math.min(1500, typeMs);
+        at(ringAt, ()=>{ if(caret()) caret().classList.add('off'); if(field()) field().classList.remove('active'); pressBtn(q('.btn')); });
+        at(ringAt+420, ()=>{ showEl(q('.think'),'anim-fadein'); });                     // Claude is countering
+        at(ringAt+1500,()=>{ q('.think').style.opacity='0'; showEl(q('[data-spar-reply]'),'anim-fadein'); doGlitch(q('.msg.ai')); });
+        at(ringAt+2250,()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
+
       } else {
-        // LEARN / SPAR / TRAIN: type → think → output types/assembles → tag
-        const tNode = ()=> sc().querySelector('[data-type]');
-        const caret = ()=> sc().querySelector('.caret');
-        at(s0+640, ()=>{ if(caret()) caret().classList.add('solid'); typeInto(tNode(), d.type, d.cps); });
-        // after typing, brief think pulse
-        const typeMs = d.type ? (d.type.length * (1000/d.cps)) : 600;
-        const thinkAt = s0 + 700 + Math.min(1900, typeMs);
-        at(thinkAt, ()=>{ if(caret()) caret().classList.add('off'); showEl(sc().querySelector('.think'),'anim-fadein'); });
-        // output reveals (swarm-feel via glitch-in + fade)
-        at(thinkAt+1000, ()=>{ sc().querySelector('.think').style.opacity='0'; const o=sc().querySelector('.out'); showEl(o,'anim-fadein'); doGlitch(o.querySelector('.out-text')); });
-        // result tag
-        at(thinkAt+1850, ()=>{ const tg=sc().querySelector('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
+        // LEARN / TRAIN — type into the real field → button press + sheen → thinking
+        // → the model's answer reveals INSIDE the real .fb / message → tag.
+        const tNode=()=> q('[data-type]'); const caret=()=> q('.caret'); const field=()=> q('.field');
+        at(s0+640, ()=>{ if(field()) field().classList.add('active'); if(caret()) caret().classList.add('solid'); typeInto(tNode(), d.type, d.cps); });
+        const typeMs = d.type ? (d.type.length*(1000/d.cps)) : 600;
+        const runAt = s0 + 700 + Math.min(1500, typeMs);
+        at(runAt, ()=>{ if(caret()) caret().classList.add('off'); if(field()) field().classList.remove('active'); pressBtn(q('.btn')); });
+        at(runAt+340, ()=>{ showEl(q('.think'),'anim-fadein'); });
+        at(runAt+1300,()=>{ q('.think').style.opacity='0'; const o=q('.out:not([data-drill])'); showEl(o,'anim-fadein'); doGlitch(o.querySelector('.fb,.msg')); });
+        at(runAt+2050,()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
       }
 
       // disperse the face into a swarm just before the cut
-      at(s0+LEN-360, ()=>{ const f=sc().querySelector('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; } swarmDisperse(); });
+      at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; } swarmDisperse(); });
 
       cur += LEN;
     });
-    // demos end ~ 6000 + 5*4900 = 30500
+    // demos end ~ 6000 + 5*5000 = 31000
 
-    /* ---------- VALUE STACK (30.6 – 34.0s) ---------- */
-    const VSTART = 30700;
+    /* ---------- VALUE STACK (31.1 – 34.4s) ---------- */
+    const VSTART = 31100;
     at(VSTART, ()=>{
       setTemp('orange'); hudText.textContent='WHY';
       showOnly(7); doFlash(.3); swarmBurst();
@@ -1117,8 +1250,8 @@ html,body{
       vt.style.animation='slamIn .55s cubic-bezier(.2,1.3,.3,1) forwards';
     });
 
-    /* ---------- END CARD (34.0 – 36.4s) : swarm assemble face ---------- */
-    const ESTART = 34050;
+    /* ---------- END CARD (34.45 – 36.9s) : swarm assemble face ---------- */
+    const ESTART = 34450;
     at(ESTART, ()=>{
       setTemp('orange'); hudText.textContent='SHARPEN';
       showOnly(8); doFlash(.34);
