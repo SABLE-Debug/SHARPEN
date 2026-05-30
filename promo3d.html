@@ -90,12 +90,21 @@ html,body{
   box-shadow:
     inset 0 0 220px 40px rgba(0,0,0,.85),
     0 0 0 1px rgba(255,106,0,.10);
-  /* In V5 the stage was a CSS 2.5D room. In promo3d the real depth lives in
-     the Three.js PerspectiveCamera, so the DOM overlay is flat — but the
-     camera vars are still written (by the Three.js camera) so the device-
-     card shadow + rim-light still parallax against the real camera move. */
+  /* CSS-3D presence: the DOM overlay now lives in a real perspective volume so
+     the content panels / captions / chrome carry depth + parallax + tilt against
+     the SAME camera move the Three.js PerspectiveCamera makes. Text stays DOM
+     (razor-crisp — never rendered into WebGL) but reads dimensional. The
+     --camX/--camY/--camRY vars are written every frame by the GL camera. */
+  perspective:1600px;
+  perspective-origin:calc(50% + var(--camX,0px)) calc(50% + var(--camY,0px));
+  transform-style:preserve-3d;
   --camX:0px; --camY:0px; --camRX:0deg; --camRY:0deg;
 }
+
+/* every content layer rides the shared perspective; parallax + tilt driven by
+   the real camera vars. Depth assigned per-layer via translateZ (focal content
+   forward, chrome mid, atmosphere back) so nothing reads flat-and-static. */
+.scene,.type,.demo,.vstack{transform-style:preserve-3d}
 
 /* the Three.js backdrop canvas — swarm + face relief, behind all content.
    (Replaces V5's 2D swarm canvas + raw-WebGL relief canvas with one GL canvas.) */
@@ -194,15 +203,21 @@ html,body{
   background:radial-gradient(ellipse 60% 70% at 50% 45%,var(--temp) 0%,transparent 70%);
   opacity:0;transition:opacity .5s, background .2s;
 }
-.scene.live .face-wash{opacity:.5}
+.scene.live .face-wash{opacity:.28}
 /* when the Three.js relief is carrying the face, hide the flat <img> so the
    GL volume reads clean (mirrors V5's .relief-on, but here the GL fully owns it). */
 .face.relief-on{opacity:0!important}
 
-/* center type column */
+/* center type column — sits forward in the perspective volume + parallaxes
+   against the camera so the title/kicker/end type reads dimensional, not flat. */
 .type{position:absolute;inset:0;z-index:20;
   display:flex;flex-direction:column;align-items:center;justify-content:center;
-  text-align:center;pointer-events:none}
+  text-align:center;pointer-events:none;
+  transform-style:preserve-3d;
+  transform:
+    translate3d(calc(var(--camX,0px) * -1.3), calc(var(--camY,0px) * -0.9), 40px)
+    rotateY(calc(var(--camRY,0deg) * -0.7));
+  transition:transform .12s linear}
 
 .kicker{font-family:var(--pixel);text-transform:uppercase;
   letter-spacing:.34em;font-size:18px;color:var(--temp);
@@ -226,9 +241,17 @@ html,body{
 .feat-tag{font-family:var(--pixel);text-transform:uppercase;letter-spacing:.3em;
   font-size:13px;color:var(--temp);transition:color .2s}
 
-/* ---- legibility pass: dark scrim behind text + dark halos so words read over the swarm ---- */
+/* ---- legibility pass: dark scrim behind text + dark halos so words read over
+   the FULL-FRAME digital rain. The rain fills every frame now (change 4), so the
+   focal content gets a deeper centred scrim that sits between the rain and the
+   type — dense atmosphere behind, clear words in front (depth separation). ---- */
 .type::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
-  background:radial-gradient(ellipse 78% 62% at 50% 52%,rgba(0,0,0,.60) 0%,rgba(0,0,0,.30) 48%,rgba(0,0,0,0) 80%)}
+  transform:translateZ(-30px);
+  background:radial-gradient(ellipse 80% 66% at 50% 52%,rgba(0,0,0,.74) 0%,rgba(0,0,0,.46) 46%,rgba(0,0,0,0) 82%)}
+/* value-stack scrim — same depth-separation treatment for the WHY scene. */
+.vstack::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  transform:translateZ(-30px);
+  background:radial-gradient(ellipse 76% 70% at 50% 50%,rgba(0,0,0,.72) 0%,rgba(0,0,0,.42) 48%,rgba(0,0,0,0) 84%)}
 .kicker{text-shadow:0 2px 10px rgba(0,0,0,.92),0 0 18px color-mix(in srgb,var(--temp) 55%,transparent)}
 .headline{text-shadow:0 3px 16px rgba(0,0,0,.92)}
 .headline em{text-shadow:0 3px 16px rgba(0,0,0,.85),0 0 30px color-mix(in srgb,var(--temp) 42%,transparent)}
@@ -243,17 +266,33 @@ html,body{
    identical copy + structure to V5). The type→think→output pipeline
    plays out INSIDE this real-looking app. DOM overlay = legible layer.
    ============================================================ */
-.demo{position:absolute;z-index:22;left:96px;top:50%;
+/* Demo panel is TOP-anchored (was vertically centred) so its top edge — and
+   its soft drop-shadow bleed — always clears the top chrome (HUD label at
+   y44, top ruler at y61). Measured: tallest panel = SPAR ~429px; at top:104
+   its bottom lands ~533px, well inside the 720 stage + clear of the bottom
+   ruler (y659). Gives every feature scene a clean >40px gap to the chrome. */
+.demo{position:absolute;z-index:22;left:96px;top:104px;
   width:600px;
-  transform:translateY(-50%);
-  pointer-events:none;text-align:left}
+  pointer-events:none;text-align:left;
+  /* FOCAL DEPTH: the demo panel sits forward in the perspective volume and
+     tilts subtly against the camera (parallax + rotateY) so it reads as a real
+     dimensional card floating in front of the rain — content stays crisp DOM. */
+  transform-style:preserve-3d;
+  transform:
+    translate3d(calc(var(--camX,0px) * -1.6), calc(var(--camY,0px) * -1.0), 60px)
+    rotateY(calc(var(--camRY,0deg) * -0.9))
+    rotateX(calc(var(--camRX,0deg) * 0.6));
+  transition:transform .12s linear}
 .app{position:relative;background:var(--bg);
   border:1px solid #262626;border-radius:14px;padding:22px 22px 20px;
-  /* layered drop-shadow with a parallax offset driven by the real camera vars */
+  /* layered drop-shadow with a parallax offset driven by the real camera —
+     a deep cast shadow + a wide dark halo so the forward panel lifts cleanly
+     OFF the busy digital-rain behind it (content reads, atmosphere recedes). */
   box-shadow:
-    calc(var(--camX,0px) * -1.1) calc(30px - var(--camY,0px) * 1.1) 80px rgba(0,0,0,.62),
+    calc(var(--camX,0px) * -1.4) calc(34px - var(--camY,0px) * 0.9) 72px 4px rgba(0,0,0,.72),
     0 0 0 1px rgba(0,0,0,.5),
     0 0 0 7px rgba(14,14,14,.9),0 0 0 8px rgba(255,106,0,.10),
+    0 0 64px 14px rgba(10,10,10,.5),
     inset 0 1px 0 rgba(255,255,255,.05);
   min-height:300px}
 .app::before{content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
@@ -463,8 +502,10 @@ html,body{
 @keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
 .anim-fadein{animation:fadeIn .42s ease-out forwards}
 
-@keyframes cardIn{0%{opacity:0;transform:translateY(-50%) scale(.9)}
-  100%{opacity:1;transform:translateY(-50%) scale(1)}}
+/* card-in: no translateY here — .demo is now top-anchored (was -50% centred,
+   which the old keyframe compensated for). Scale-from-.92 entry only. */
+@keyframes cardIn{0%{opacity:0;transform:translateY(10px) scale(.92)}
+  100%{opacity:1;transform:translateY(0) scale(1)}}
 .anim-cardin{animation:cardIn .44s cubic-bezier(.2,1.2,.3,1) forwards}
 
 /* RGB channel-split glitch — the hard-beat punctuation (kept as a DOM-level
@@ -874,31 +915,33 @@ const FACE_SRCS = ['assets/face-learn.webp','assets/face-spar.webp',
 
 /* ============================================================
    THREE.JS ENGINE (the Tier-2 core) — one WebGL canvas behind the DOM.
-   Owns: a real PerspectiveCamera (dolly/parallax/orbit drift), a GPU
-   particle dither-swarm (THREE.Points, ~120k pts, vertex-shader morph
-   between a dispersed cloud and per-face target positions), a face RELIEF
-   mesh (luminance height-map vertex displacement, lit by a moving
-   directional light), and an EffectComposer chain (bloom → custom 1-bit
-   dither + RGB-split + grain fragment pass) so the whole frame unifies
-   under the Sankalpa dither at the GPU level — carbon + orange only.
+   Owns: a real PerspectiveCamera (dolly/parallax/orbit drift) moving through
+   THREE depth-separated layers of MATRIX-STYLE DIGITAL RAIN — falling 1-bit
+   code where each cell's brightness is driven by the face webp's luminance, so
+   the portrait EMERGES from the code (frameless). Far ambient rain + mid data-
+   streams fill the whole frame (fogged, low-contrast) while the focal face-rain
+   sits sharp in front. An EffectComposer grade (gentle bloom → carbon→orange
+   tone + RGB-split beats + grain + vignette) unifies it as carbon + orange.
+   All three rain layers are INSTANCED (one draw call each) — far lighter than
+   the old 120k-point swarm it replaced.
 
    Bulletproof: if WebGL is unavailable, the constructor throws → we catch,
    hide the canvas, and the crisp <img> faces carry the show flat (V5 path).
    ============================================================ */
 const STAGE_W = 1280, STAGE_H = 720;
-/* particle budget scales with device class. mid-tier mobile / low-power gets a
-   lighter swarm so we hold ~60fps; desktop gets the full 120k hero density.
-   (coarse-pointer + low logical-core count is the cheap mobile heuristic.) */
+/* rain budget scales with device class — mid-tier mobile / low-power gets fewer
+   columns so we hold 60fps; desktop gets the full hero density. (coarse-pointer
+   + low logical-core count is the cheap mobile heuristic.) The per-layer counts
+   live in RAIN_COLS + the buildAmbientRain() calls below. */
 const IS_MOBILE = window.matchMedia('(pointer:coarse)').matches ||
                   (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
-const PARTICLE_COUNT = REDUCED ? 0 : (IS_MOBILE ? 55000 : 120000);   // GPU dither-dots
 
 const Engine = (function buildEngine(){
   const stub = {
     ok:false,
     setSwarmFace(){}, assemble(){}, disperse(){}, burst(){},
     reliefOn(){}, reliefOff(){}, setAside(){},
-    camCut(){}, setCamScene(){}, beat(){}, setTemp(){}, render(){}, resize(){}
+    camCut(){}, setCamScene(){}, setMotion(){}, beat(){}, setTemp(){}, render(){}, resize(){}
   };
   const canvas = document.getElementById('gl');
   if(!canvas) return stub;
@@ -947,333 +990,469 @@ const Engine = (function buildEngine(){
   const planeW = planeH * (STAGE_W/STAGE_H);
 
   /* ============================================================
-     GPU PARTICLE DITHER-SWARM
-     Each particle carries TWO endpoints in attributes:
-       aCloud  — its dispersed 3D-cloud home (random shell)
-       aTarget — its formed position (sampled from the current face's
-                 luminance; dense where the dither is dense = lit areas)
-     The vertex shader lerps cloud→target by uProgress (eased on the JS
-     side), adds uTime idle drift, and sizes/colours each point. One draw
-     call. uProgress 1 = formed face, 0 = dispersed swarm.
+     MATRIX-STYLE DIGITAL RAIN  (the figure look — replaces the swarm)
+     Three instanced character-grids of falling 1-bit code (binary 1s/0s +
+     a few disciplined glyph marks). Each is ONE draw call (instanced unit
+     quad, glyph picked + lit in the fragment shader). Depth-separated so the
+     frame is FULL but the focal figure stays legible:
+       • faceRain   — THE figure. Per-cell ALPHA = the face webp's LUMINANCE,
+                      so the portrait EMERGES from the falling code (bright
+                      where lit, fades to nothing where dark → frameless, no
+                      plane edge). Sits forward, sharp. Rotates as a real 3D
+                      sculpture via the per-feature motion (yaw/pitch/scale).
+       • midStreams — faster, sparser data-streaks at mid-depth (parallax).
+       • farRain    — full-frame ambient rain across the whole 1280×720,
+                      pushed back + fogged (low-contrast) so it fills every
+                      frame without ever competing with the content.
+     Carbon ground + orange code + per-tab temp tint — 1-bit, branded, NOT
+     Matrix-green. Continuous fall = alive. uGain/uProgress fade+slow on cuts.
      ============================================================ */
-  const swarm = (function buildSwarm(){
-    if(PARTICLE_COUNT === 0) return null;
-    const N = PARTICLE_COUNT;
-    const geo = new THREE.BufferGeometry();
 
-    const aCloud   = new Float32Array(N*3);
-    const aTarget  = new Float32Array(N*3);
-    const aRnd      = new Float32Array(N);     // per-particle random (phase/size)
-    const aBright  = new Float32Array(N);      // target luminance 0..1 (alpha/size)
-    // positions buffer is what the shader writes; seed = cloud
-    const position = new Float32Array(N*3);
-
-    for(let i=0;i<N;i++){
-      // dispersed cloud: a fat ellipsoidal shell around origin
-      const a = Math.random()*Math.PI*2;
-      const u = Math.random()*2-1;
-      const r = 14 + Math.random()*30;
-      const sq = Math.sqrt(1-u*u);
-      const cx = Math.cos(a)*sq*r*1.25;
-      const cy = u*r*0.78;
-      const cz = Math.sin(a)*sq*r*1.0 - 6;
-      aCloud[i*3]=cx; aCloud[i*3+1]=cy; aCloud[i*3+2]=cz;
-      position[i*3]=cx; position[i*3+1]=cy; position[i*3+2]=cz;
-      // target seeded to cloud until a face is sampled
-      aTarget[i*3]=cx; aTarget[i*3+1]=cy; aTarget[i*3+2]=cz;
-      aRnd[i]=Math.random();
-      aBright[i]=0.6;
+  /* glyph atlas — 16 cells (4×4): mostly 0/1 (disciplined), a few sparse
+     marks for texture. White glyph on transparent; tinted to temp in-shader.
+     Drawn once to a canvas → a NearestFilter texture so the code stays crisp. */
+  const ATLAS_N = 4;                       // 4×4 = 16 glyphs
+  const GLYPHS = ['0','1','0','1','0','1','1','0',   // 0/1 dominate the field
+                  '0','1','|',':','+','/','1','0'];   // a few disciplined marks
+  function buildGlyphAtlas(){
+    const CELL = 32, S = CELL*ATLAS_N;
+    const c = document.createElement('canvas'); c.width=c.height=S;
+    const g = c.getContext('2d');
+    g.clearRect(0,0,S,S);
+    g.fillStyle = '#fff';
+    g.font = '700 24px "Departure Mono","Geist Mono",monospace';
+    g.textAlign='center'; g.textBaseline='middle';
+    for(let i=0;i<16;i++){
+      const cx=(i%ATLAS_N)*CELL + CELL/2, cy=((i/ATLAS_N)|0)*CELL + CELL/2;
+      g.fillText(GLYPHS[i], cx, cy);
     }
-    geo.setAttribute('position', new THREE.BufferAttribute(position,3));
-    geo.setAttribute('aCloud',   new THREE.BufferAttribute(aCloud,3));
-    geo.setAttribute('aTarget',  new THREE.BufferAttribute(aTarget,3));
-    geo.setAttribute('aRnd',     new THREE.BufferAttribute(aRnd,1));
-    geo.setAttribute('aBright',  new THREE.BufferAttribute(aBright,1));
+    const tex = new THREE.CanvasTexture(c);
+    tex.minFilter = THREE.NearestFilter; tex.magFilter = THREE.NearestFilter;
+    tex.generateMipmaps = false; tex.colorSpace = THREE.SRGBColorSpace;
+    return tex;
+  }
+  const glyphTex = buildGlyphAtlas();
+
+  /* shared fragment shader for all three rain layers: glyph-atlas lookup +
+     head-white / temp-tint colour. The vertex shaders (per layer) supply
+     vBright / vGlyph / vFog / vQuad. One material per layer, but identical frag. */
+  const RAIN_FRAG = `
+    precision mediump float;
+    ${`uniform sampler2D uGlyph; uniform vec3 uColor; uniform float uGain;`}
+    varying float vBright; varying float vGlyph; varying float vFog; varying vec2 vQuad;
+    void main(){
+      // which glyph cell — vGlyph is 0..15, lay it out on the 4×4 atlas
+      float gi = floor(vGlyph + 0.5);
+      vec2 cell = vec2(mod(gi,4.0), floor(gi/4.0));
+      vec2 guv = (cell + vQuad) / 4.0;
+      float mask = texture2D(uGlyph, guv).a;          // glyph coverage
+      if(mask < 0.04) discard;
+      // brightest at the falling "head" → white core; trail in temp/orange.
+      float head = smoothstep(0.55, 1.0, vBright);
+      vec3 col = mix(uColor, vec3(1.0), head*0.85);
+      float a = mask * vBright * uGain * vFog;
+      if(a < 0.01) discard;
+      gl_FragColor = vec4(col, a);
+    }`;
+
+  /* ---------- faceRain : THE figure, lit by face luminance ---------- */
+  const RAIN_COLS = REDUCED ? 60 : (IS_MOBILE ? 80 : 120);
+  const faceRain = (function buildFaceRain(){
+    const COLS = RAIN_COLS;
+    const ROWS = Math.round(COLS * (180/420) * 1.45);   // cell aspect tuned tall
+    const N = COLS*ROWS;
+    const geo = new THREE.InstancedBufferGeometry();
+    // unit quad (two tris). position (vec3) gives THREE the per-instance vertex
+    // count (6); aQuad (vec2) is the 0..1 glyph-UV the shaders actually read.
+    const quad = new Float32Array([0,0, 1,0, 1,1, 0,0, 1,1, 0,1]);
+    const quad3 = new Float32Array([0,0,0, 1,0,0, 1,1,0, 0,0,0, 1,1,0, 0,1,0]);
+    geo.setAttribute('position', new THREE.BufferAttribute(quad3,3));
+    geo.setAttribute('aQuad', new THREE.BufferAttribute(quad,2));
+    const aCell = new Float32Array(N*2);     // col,row indices
+    const aRand = new Float32Array(N);       // per-cell random
+    let k=0;
+    for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){
+      aCell[k*2]=c; aCell[k*2+1]=r; aRand[k]=Math.random(); k++;
+    }
+    geo.setAttribute('aCell', new THREE.InstancedBufferAttribute(aCell,2));
+    geo.setAttribute('aRand', new THREE.InstancedBufferAttribute(aRand,1));
+    geo.instanceCount = N;
 
     const uni = {
-      uProgress: {value:0},
-      uTime:     {value:0},
-      uColor:    {value:tempColor},
-      uSize:     {value: 2.0 * DPR },
-      uGain:     {value: 0 },          // master opacity of the whole field
-      uCloudJit: {value: 1 }           // idle drift amount on the cloud side
+      uGlyph:{value:glyphTex}, uTime:{value:0}, uColor:{value:tempColor},
+      uGain:{value:0}, uProgress:{value:0},
+      uFaceTex:{value:null}, uHasFace:{value:0},
+      uTexel:{value:new THREE.Vector2(1/420,1/180)},
+      uGrid:{value:new THREE.Vector2(COLS,ROWS)},
+      uFoot:{value:new THREE.Vector4(0,0,1,1)},   // cx,cy,w,h (world)
+      uCell:{value:0.42},                          // glyph world-size
+      uYaw:{value:0}, uPitch:{value:0}, uRoll:{value:0}, uScale:{value:1}, uRise:{value:0},
+      uPivot:{value:new THREE.Vector3(0,0,0)},
+      uFogDen:{value:0.0}
     };
-
     const mat = new THREE.ShaderMaterial({
-      uniforms: uni,
-      transparent: true,
-      depthWrite: false,
-      depthTest: false,
-      blending: THREE.AdditiveBlending,
-      vertexShader: `
-        uniform float uProgress;
-        uniform float uTime;
-        uniform float uSize;
-        uniform float uCloudJit;
-        attribute vec3 aCloud;
-        attribute vec3 aTarget;
-        attribute float aRnd;
-        attribute float aBright;
-        varying float vBright;
-        varying float vCore;
-        // smootherstep for a soft assemble settle
-        float ss(float e0,float e1,float x){ float t=clamp((x-e0)/(e1-e0),0.,1.); return t*t*t*(t*(t*6.-15.)+10.); }
+      uniforms:uni, transparent:true, depthWrite:false, depthTest:false,
+      blending:THREE.NormalBlending,
+      vertexShader:`
+        precision mediump float;
+        attribute vec2 aQuad; attribute vec2 aCell; attribute float aRand;
+        uniform float uTime, uProgress, uCell;
+        uniform vec2 uGrid, uTexel; uniform vec4 uFoot;
+        uniform sampler2D uFaceTex; uniform float uHasFace;
+        uniform float uYaw,uPitch,uRoll,uScale,uRise; uniform vec3 uPivot;
+        varying float vBright; varying float vGlyph; varying float vFog; varying vec2 vQuad;
+        float lum(vec3 c){ return dot(c,vec3(0.299,0.587,0.114)); }
+        float h11(float p){ p=fract(p*0.1031); p*=p+33.33; p*=p+p; return fract(p); }
+        mat3 rotY(float a){ float c=cos(a),s=sin(a); return mat3(c,0.,-s,0.,1.,0.,s,0.,c); }
+        mat3 rotX(float a){ float c=cos(a),s=sin(a); return mat3(1.,0.,0.,0.,c,s,0.,-s,c); }
+        mat3 rotZ(float a){ float c=cos(a),s=sin(a); return mat3(c,s,0.,-s,c,0.,0.,0.,1.); }
         void main(){
-          float pr = uProgress;
-          // per-particle stagger so the swarm "breathes" into place rather than
-          // snapping uniformly — brighter (core) dots arrive a touch sooner.
-          float stagger = mix(0.0, 0.34, aRnd);
-          float p = ss(stagger, stagger+0.66, pr);
-          vec3 pos = mix(aCloud, aTarget, p);
-          // idle drift: stronger on the cloud side (dispersed), fades as it forms.
-          float drift = (1.0 - p) * uCloudJit;
-          float t = uTime;
-          pos.x += sin(t*0.6 + aRnd*40.0) * 0.5 * drift;
-          pos.y += cos(t*0.5 + aRnd*55.0) * 0.5 * drift;
-          pos.z += sin(t*0.45 + aRnd*30.0) * 0.7 * drift;
-          // a little life even when formed — sub-pixel shimmer
-          pos.x += sin(t*1.6 + aRnd*90.0) * 0.018 * p;
-          pos.y += cos(t*1.7 + aRnd*70.0) * 0.018 * p;
-          vBright = aBright;
-          vCore = step(0.82, aBright);   // hottest dots get a white core
-          vec4 mv = modelViewMatrix * vec4(pos, 1.0);
-          // point size attenuates with distance; brighter dots slightly larger
-          float sz = uSize * (0.72 + aBright*0.85);
-          gl_PointSize = sz * (62.0 / -mv.z);
+          vQuad = aQuad;
+          float col = aCell.x, row = aCell.y;
+          float u = (col+0.5)/uGrid.x;                 // 0..1 across the face
+          // FALL: each column scrolls downward at a column-specific speed; the
+          // "stream head" position determines per-cell brightness + glyph flips.
+          float speed = 0.6 + h11(col*1.7)*0.9;
+          float colPhase = h11(col*3.1)*10.0;
+          float fall = fract(uTime*speed*0.16 + colPhase);   // 0..1 head pos (top→down)
+          float rowN = row/uGrid.y;
+          // distance from the falling head (wrap-aware) → trailing tail brightness
+          float d = rowN - fall; d -= floor(d+0.5);          // -0.5..0.5 nearest
+          float along = 1.0 - abs(d)/0.5;                    // 1 at head, 0 at far edge
+          float trail = pow(clamp(along,0.0,1.0), 2.2);      // sharp head, soft tail
+          // sample the FACE TONE at this cell. uFaceTex is a CPU-prebaked
+          // box-averaged + contrast-curved tone map (continuous, NOT the raw
+          // 1-bit dither) so a single linear tap resolves the PORTRAIT cleanly.
+          float faceL = 0.0;
+          if(uHasFace>0.5){
+            vec2 fuv = vec2(u, 1.0-rowN);                    // flip Y (img→world up)
+            faceL = texture2D(uFaceTex, fuv).r;              // prebaked tone
+            // extra punch so the portrait dominates the ambient rain: lift the
+            // lit face, sink the shadow toward carbon → the face reads clearly.
+            faceL = pow(faceL, 0.80) * 1.18;
+          }
+          // BRIGHTNESS: the FACE TONE DOMINATES (so the portrait reads as a 2D
+          // structure, not vertical streaks). The fall is expressed two gentle
+          // ways that DON'T destroy the face: (a) a small steady-vs-head lift so
+          // stream-heads sparkle a little brighter as they pass, (b) the glyph
+          // flipping (below). Most of the figure holds a steady face-driven tone.
+          float streamLift = 0.86 + 0.28*trail;            // 0.86..1.14 (gentle)
+          float bright = faceL * streamLift;
+          // off-face cells: only the bright falling HEAD shows faintly, so the
+          // surrounding rain stays alive at the figure's edges (still frameless).
+          bright += (1.0 - clamp(faceL,0.0,1.0)) * pow(trail, 3.0) * 0.08;
+          // a touch of per-cell flicker keeps the code alive
+          float flick = 0.90 + 0.10*step(0.5, fract(uTime*6.0 + aRand*20.0));
+          bright *= flick;
+          // dissolve on disperse (uProgress 0 = scattered/faded)
+          bright *= smoothstep(0.0, 0.35, uProgress);
+          vBright = clamp(bright, 0.0, 1.5);
+          // glyph index: flips over time per cell (the characters keep changing)
+          float gstep = floor(uTime*5.0 + aRand*30.0 + row*0.7);
+          vGlyph = mod(h11(gstep + col*7.0 + row)*16.0, 16.0);
+
+          // ---- place the cell in the footprint grid, in real 3D ----
+          float cellW = uFoot.z/uGrid.x, cellH = uFoot.w/uGrid.y;
+          float px = uFoot.x + (u-0.5)*uFoot.z;
+          float py = uFoot.y + (0.5-rowN)*uFoot.w;
+          // quad offset (slightly smaller than the cell so glyphs don't touch)
+          vec3 local = vec3(px + (aQuad.x-0.5)*cellW*0.92,
+                            py + (aQuad.y-0.5)*cellH*0.92, 0.0);
+          // tiny per-cell Z jitter off the face luminance → the figure has real
+          // relief depth (lit cells sit forward) so the 3D turn never reads flat.
+          local.z += (faceL-0.3) * 2.4;
+          // rotate the whole figure as a 3D sculpture about its own pivot
+          mat3 R = rotY(uYaw)*rotX(uPitch)*rotZ(uRoll);
+          vec3 world = R * ((local - uPivot)*uScale) + uPivot;
+          world.y += uRise;
+          vec4 mv = modelViewMatrix * vec4(world,1.0);
+          vFog = 1.0;                                  // focal layer: no fog
           gl_Position = projectionMatrix * mv;
         }`,
-      fragmentShader: `
-        precision mediump float;
-        uniform vec3 uColor;
-        uniform float uGain;
-        varying float vBright;
-        varying float vCore;
-        void main(){
-          // square-ish dot with a soft round falloff (reads as a dither dot)
-          vec2 d = gl_PointCoord - 0.5;
-          float r = dot(d,d);
-          if(r > 0.25) discard;
-          float soft = smoothstep(0.25, 0.02, r);
-          float a = soft * uGain * (0.45 + vBright*0.55);
-          vec3 col = uColor;
-          // hottest dots burn toward white at the core (matches V5's white core)
-          col = mix(col, vec3(1.0), vCore * soft * 0.7);
-          gl_FragColor = vec4(col, a);
-        }`
+      fragmentShader: RAIN_FRAG
     });
-
-    const points = new THREE.Points(geo, mat);
-    points.frustumCulled = false;
-    scene.add(points);
-
-    return {points, geo, mat, uni, N, aTarget, aBright,
-            posAttr: geo.getAttribute('position')};
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.frustumCulled = false; mesh.renderOrder = 3;
+    scene.add(mesh);
+    return {mesh, mat, uni, COLS, ROWS, N};
   })();
 
+  /* ---------- ambient layers : fill the whole frame (depth-separated) ---------- */
+  function buildAmbientRain(opts){
+    const COLS=opts.cols, ROWS=opts.rows, N=COLS*ROWS;
+    const geo = new THREE.InstancedBufferGeometry();
+    const quad = new Float32Array([0,0,1,0,1,1,0,0,1,1,0,1]);
+    const quad3 = new Float32Array([0,0,0, 1,0,0, 1,1,0, 0,0,0, 1,1,0, 0,1,0]);
+    geo.setAttribute('position', new THREE.BufferAttribute(quad3,3));
+    geo.setAttribute('aQuad', new THREE.BufferAttribute(quad,2));
+    const aCell=new Float32Array(N*2), aRand=new Float32Array(N);
+    let k=0; for(let r=0;r<ROWS;r++) for(let c=0;c<COLS;c++){ aCell[k*2]=c; aCell[k*2+1]=r; aRand[k]=Math.random(); k++; }
+    geo.setAttribute('aCell', new THREE.InstancedBufferAttribute(aCell,2));
+    geo.setAttribute('aRand', new THREE.InstancedBufferAttribute(aRand,1));
+    geo.instanceCount=N;
+    const uni={
+      uGlyph:{value:glyphTex}, uTime:{value:0}, uColor:{value:tempColor},
+      uGain:{value:opts.gain}, uGrid:{value:new THREE.Vector2(COLS,ROWS)},
+      uSpan:{value:new THREE.Vector2(opts.w,opts.h)}, uZ:{value:opts.z},
+      uSpeed:{value:opts.speed}, uBase:{value:opts.base}, uDim:{value:opts.dim},
+      uClear:{value:new THREE.Vector4(0,0,0,0)}   // cx,cy,halfW,halfH of focal figure
+    };
+    const mat=new THREE.ShaderMaterial({
+      uniforms:uni, transparent:true, depthWrite:false, depthTest:false,
+      blending:THREE.NormalBlending,
+      vertexShader:`
+        precision mediump float;
+        attribute vec2 aQuad; attribute vec2 aCell; attribute float aRand;
+        uniform float uTime,uZ,uSpeed,uBase,uDim; uniform vec2 uGrid,uSpan;
+        uniform vec4 uClear;
+        varying float vBright; varying float vGlyph; varying float vFog; varying vec2 vQuad;
+        float h11(float p){ p=fract(p*0.1031); p*=p+33.33; p*=p+p; return fract(p); }
+        void main(){
+          vQuad=aQuad;
+          float col=aCell.x,row=aCell.y;
+          float speed=(0.5+h11(col*1.7)*1.1)*uSpeed;
+          float fall=fract(uTime*speed*0.16 + h11(col*3.1)*10.0);
+          float rowN=row/uGrid.y;
+          float d=rowN-fall; d-=floor(d+0.5);
+          float trail=pow(clamp(1.0-abs(d)/0.5,0.0,1.0),2.0);
+          // sparse: only some columns lit at a time → reads as data-streams
+          // ('active' is a GLSL-ES reserved word, so the flag is named aOn.)
+          float aOn=step(0.30, h11(col*5.0 + floor(uTime*0.4+aRand*3.0)));
+          vBright=clamp((uBase + trail) * aOn, 0.0, 1.3);
+          float gstep=floor(uTime*4.0 + aRand*30.0 + row*0.6);
+          vGlyph=mod(h11(gstep+col*7.0+row)*16.0,16.0);
+          float cellW=uSpan.x/uGrid.x, cellH=uSpan.y/uGrid.y;
+          float px=(col+0.5)/uGrid.x, py=(row+0.5)/uGrid.y;
+          vec3 local=vec3((px-0.5)*uSpan.x + (aQuad.x-0.5)*cellW*0.9,
+                          (0.5-py)*uSpan.y + (aQuad.y-0.5)*cellH*0.9, uZ);
+          // CLEARING: dim the ambient where the focal FIGURE sits, so the face-
+          // rain reads against cleaner space (depth separation done right — the
+          // atmosphere recedes AROUND the figure instead of masking it).
+          float clr=1.0;
+          if(uClear.z>0.01){
+            vec2 q=(local.xy-uClear.xy)/uClear.zw;          // -1..1 in figure box
+            float inside=1.0-smoothstep(0.50,1.10,length(q));
+            clr=mix(1.0, 0.28, inside);
+          }
+          vFog = uDim * clr;
+          gl_Position=projectionMatrix*modelViewMatrix*vec4(local,1.0);
+        }`,
+      fragmentShader: RAIN_FRAG
+    });
+    const mesh=new THREE.Mesh(geo,mat);
+    mesh.frustumCulled=false; mesh.renderOrder=opts.order;
+    scene.add(mesh);
+    return {mesh,mat,uni};
+  }
+  // far ambient rain — fills the entire world plane, pushed back. Visibly
+  // present (no dead black) but recessive (dim) so the content reads in front.
+  // REDUCED-MOTION: still built, but SLOW + lighter (a calm, filled frame — the
+  // spec's "slower/lighter rain, no storm, still non-empty"). Mid-streams off.
+  const farRain = buildAmbientRain({
+    cols: IS_MOBILE?70:96, rows: IS_MOBILE?40:54,
+    w: planeW*1.7, h: planeH*1.7, z:-34,
+    speed: REDUCED?0.22:0.7, base:0.14, gain:1.0, dim:REDUCED?0.30:0.34, order:0 });
+  // mid data-streams — faster, sparser, mid-depth (parallax between far + focal).
+  // dimmer than the focal face-rain so the portrait clearly sits in front.
+  // Skipped under reduced-motion (keeps the frame calm — far layer is enough).
+  const midStreams = REDUCED ? null : buildAmbientRain({
+    cols: IS_MOBILE?40:56, rows: IS_MOBILE?26:34,
+    w: planeW*1.25, h: planeH*1.3, z:-13, speed:1.7, base:0.05, gain:1.0,
+    dim:0.50, order:1 });
+
   /* ============================================================
-     FACE TARGET SAMPLING — read a dithered face into target positions.
-     The dither images are 1-bit: LIT areas = dense white dots, dark
-     ground = sparse. We sample bright pixels (lum>120, matching V5) and
-     scatter the particle pool across them so DOT DENSITY follows the
-     image's dither density. Cached per (src, aside).
+     FACE → RAIN BINDING. The source webps are 1-bit Floyd–Steinberg dither, so
+     a per-cell point-sample reads as random speckle, NOT a face. The fix: ONCE
+     per face, BOX-AVERAGE the dither down into a small continuous-tone texture
+     (84×36, linear-filtered) on the CPU — this integrates the dot-density back
+     into real luminance so the PORTRAIT reads. The faceRain shader then takes a
+     single cheap tap of that tone texture + a contrast curve (verified to
+     resolve the face cleanly). Cheap at runtime, correct visually.
+     faceImgs is the name the preload bridge writes the decoded <img>s into.
      ============================================================ */
-  const sampler = document.createElement('canvas');
-  const sctx = sampler.getContext('2d', {willReadFrequently:true});
   const faceImgs = {};
-  const targetCache = {};       // key -> Float32Array(N*3) + bright
+  const faceTexCache = {};      // src -> THREE.CanvasTexture | false (tainted/failed)
+  const faceTexLoader = new THREE.TextureLoader();
+  faceTexLoader.crossOrigin = 'anonymous';
+  const toneCanvas = document.createElement('canvas');
+  const toneCtx = toneCanvas.getContext('2d', {willReadFrequently:true});
 
   function faceFootprint(aside){
-    // formed face occupies a centred region of the world plane. aside pushes
-    // it right + scales down (mirrors the DOM .face-aside backdrop).
-    const w = (aside ? 0.72 : 0.92) * planeW;
-    const h = w * (180/420);    // source aspect
-    const cx = aside ? planeW*0.30 : 0;
-    const cy = 0;
+    // the figure occupies a region of the world plane. CENTRED scenes (boot/
+    // title/end) map it large + centred. ASIDE scenes (the 5 features) sit it in
+    // the RIGHT portion of the frame, beside the left-hand demo panel — but kept
+    // FULLY ON-SCREEN (the half-width must stay inside ±planeW/2 ≈ ±31.85 so the
+    // face never clips off the right edge; the earlier cx=0.30·planeW clipped it).
+    const w  = (aside ? 0.62 : 1.06) * planeW;     // narrower when aside
+    const h  = w * (180/420);
+    const cx = aside ? planeW*0.185 : 0;           // ~+11.8 world units (right third, on-screen)
+    const cy = aside ? planeH*0.02  : 0;
     return {w,h,cx,cy};
   }
 
-  function buildTargets(src, aside){
-    if(!swarm) return false;
-    const key = src + (aside?'_a':'_c');
-    const cached = targetCache[key];
-    if(cached){ applyTargets(cached); return true; }
+  // build (or fetch cached) the box-averaged tone texture for a face src.
+  // Returns the THREE.CanvasTexture, or false if the source pixels are
+  // unreadable (tainted file://) — caller then leaves uHasFace=0.
+  function buildToneTex(src){
+    if(faceTexCache[src] !== undefined) return faceTexCache[src];
     const img = faceImgs[src];
-    if(!img || !img.complete || !img.naturalWidth) return false;
-
-    const SW = 200, SH = Math.max(1, Math.round(SW*(img.naturalHeight/img.naturalWidth)));
-    sampler.width=SW; sampler.height=SH;
-    sctx.clearRect(0,0,SW,SH);
+    if(!img || !img.complete || !img.naturalWidth) return null;   // not decoded yet
+    const SW=420, SH=180;
+    const samp = document.createElement('canvas'); samp.width=SW; samp.height=SH;
+    const sctx = samp.getContext('2d', {willReadFrequently:true});
     sctx.drawImage(img,0,0,SW,SH);
-    let data;
-    try{ data = sctx.getImageData(0,0,SW,SH).data; }
-    catch(e){ return false; }    // tainted (file://) — caller falls back to <img>
-
-    // collect lit pixels (the figure's white dither dots)
-    const pts = [];
-    for(let sy=0; sy<SH; sy++){
-      for(let sx=0; sx<SW; sx++){
-        const i=(sy*SW+sx)*4;
-        const lum = data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114;
-        if(lum > 120){
-          pts.push((sx/SW), (sy/SH), lum/255);
-        }
-      }
+    let data; try{ data = sctx.getImageData(0,0,SW,SH).data; }
+    catch(e){ faceTexCache[src]=false; return false; }            // tainted
+    // box-average (radius 5px) → continuous tone, with a gentle contrast curve
+    // (smoothstep 0.10→0.85: verified to resolve the dithered face as a portrait
+    // without blowing the lit side into a blob). Output a small TW×TH grayscale.
+    const TW=84, TH=36, R=5;
+    function lum(px,py){ px=px<0?0:px>419?419:px; py=py<0?0:py>179?179:py; const i=(py*SW+px)*4; return (data[i]*0.299+data[i+1]*0.587+data[i+2]*0.114)/255; }
+    function ss(a,b,t){ t=(t-a)/(b-a); t=t<0?0:t>1?1:t; return t*t*(3-2*t); }
+    toneCanvas.width=TW; toneCanvas.height=TH;
+    const out = toneCtx.createImageData(TW,TH);
+    for(let ty=0;ty<TH;ty++) for(let tx=0;tx<TW;tx++){
+      const cx=Math.round((tx+0.5)/TW*SW), cy=Math.round((ty+0.5)/TH*SH);
+      let s=0,n=0; for(let dy=-R;dy<=R;dy++) for(let dx=-R;dx<=R;dx++){ s+=lum(cx+dx,cy+dy); n++; }
+      const tone = ss(0.10,0.85, s/n);
+      const v = Math.round(tone*255); const o=(ty*TW+tx)*4;
+      out.data[o]=v; out.data[o+1]=v; out.data[o+2]=v; out.data[o+3]=255;
     }
-    if(pts.length < 64) return false;
-    const nPts = pts.length/3;
+    toneCtx.putImageData(out,0,0);
+    const tex = new THREE.CanvasTexture(toneCanvas);
+    tex.minFilter=THREE.LinearFilter; tex.magFilter=THREE.LinearFilter;
+    tex.wrapS=tex.wrapT=THREE.ClampToEdgeWrapping; tex.generateMipmaps=false;
+    faceTexCache[src]=tex;
+    return tex;
+  }
+
+  // bind a face's tone texture to the focal rain + set its footprint. async —
+  // if the <img> isn't decoded yet, retries on the next call (gain ramp covers
+  // the gap). Returns true once a usable tone texture is bound.
+  function buildTargets(src, aside){
+    if(!faceRain) return false;
     const fp = faceFootprint(aside);
-    const N = swarm.N;
-    const tgt = new Float32Array(N*3);
-    const brt = new Float32Array(N);
-    for(let i=0;i<N;i++){
-      // stride-map the pool over the point set so 120k covers any count
-      const pi = ((i*7919) % nPts)*3;
-      const nx = pts[pi], ny = pts[pi+1], b = pts[pi+2];
-      // map normalised image coords → world plane (y flipped: image down → world up)
-      const wx = fp.cx + (nx-0.5)*fp.w;
-      const wy = fp.cy + (0.5-ny)*fp.h;
-      // brighter dots sit very slightly forward → reads as relief under the lit
-      const wz = (b-0.4)*1.6;
-      tgt[i*3]=wx; tgt[i*3+1]=wy; tgt[i*3+2]=wz;
-      brt[i]=b;
+    faceRain.uni.uFoot.value.set(fp.cx, fp.cy, fp.w, fp.h);
+    faceRain.uni.uPivot.value.set(fp.cx, fp.cy, 0);
+    const tex = buildToneTex(src);
+    if(tex){ faceRain.uni.uFaceTex.value = tex; faceRain.uni.uHasFace.value = 1; return true; }
+    if(tex === false){                       // tainted — try a GL load as fallback
+      if(!faceTexCache['_gl_'+src]){
+        faceTexLoader.load(src, (t)=>{ t.minFilter=THREE.LinearFilter; t.magFilter=THREE.LinearFilter; t.generateMipmaps=false; faceTexCache['_gl_'+src]=t; faceRain.uni.uFaceTex.value=t; faceRain.uni.uHasFace.value=1; }, undefined, ()=>{});
+      }
+      return false;
     }
-    const rec = {tgt, brt};
-    targetCache[key]=rec;
-    applyTargets(rec);
-    return true;
+    return true;   // optimistic — binds once the <img> decodes
   }
 
-  function applyTargets(rec){
-    const at = swarm.geo.getAttribute('aTarget');
-    const ab = swarm.geo.getAttribute('aBright');
-    at.array.set(rec.tgt); at.needsUpdate=true;
-    ab.array.set(rec.brt); ab.needsUpdate=true;
-  }
-
-  /* swarm motion state (eased toward targets on the JS side) */
+  /* rain motion state (eased on the JS side; names preserved for the loop).
+     progress = formed(1)→dispersed(0); gain = master opacity; cloudJit kept as
+     a no-op alias so the render loop's easing line stays byte-compatible. */
   let progress = 0, progressTarget = 0, gain = 0, gainTarget = 0;
   let cloudJit = 1, cloudJitTarget = 1;
 
   /* ============================================================
-     FACE RELIEF MESH — a subdivided plane displaced by the face's
-     luminance (height-map) in the vertex shader, lit by a real moving
-     directional light. Reads as an embossed/relief surface as the camera
-     moves. Sits where the formed swarm lands. Uses NearestFilter so the
-     1-bit dots stay crisp. Hidden until a usable (untainted) texture loads.
+     PER-FEATURE 3D MOTION
+     Each feature figure gets its OWN character of real-3D motion. The faceRain
+     grid is a real 3D mesh (cells extruded in Z by face luminance) so it rotates
+     as a dimensional sculpture without exposing a flat sheet. A motion is a small parametric
+     program evaluated each frame against a local clock `mt`. Distinct axis +
+     speed + character per feature — NOT five identical spins.
+       learn    : slow continuous Y-axis turn (a head slowly rotating)
+       spar     : confident lean → half-turn that squares up to camera, holds
+       words    : gentle orbital tilt (pitch+yaw figure-8, contemplative)
+       train    : breathing scale-pulse + slow axis drift (effortful, alive)
+       progress : rising/assembling shimmer (lifts up as it forms, faint sway)
+     `intensity` ramps 0→1 over the first ~0.9s of a scene so the motion eases
+     in rather than snapping; it ramps back to 0 on disperse.
      ============================================================ */
-  const relief = (function buildRelief(){
-    const SEG = REDUCED ? 1 : 200;
-    const geo = new THREE.PlaneGeometry(1, 1, SEG, Math.round(SEG*180/420));
-    const uni = {
-      uTex:      {value:null},
-      uTexel:    {value:new THREE.Vector2(1/420,1/180)},
-      uDisp:     {value: 1.5 },              // displacement height in world units
-      uLightDir: {value:new THREE.Vector3(0.4,0.5,0.85).normalize()},
-      uColor:    {value:tempColor},
-      uOpacity:  {value:0},
-      uHasTex:   {value:0}
-    };
-    const mat = new THREE.ShaderMaterial({
-      uniforms: uni,
-      transparent:true,
-      depthWrite:false,
-      depthTest:false,
-      blending: THREE.NormalBlending,
-      vertexShader: `
-        precision mediump float;
-        uniform sampler2D uTex;
-        uniform vec2 uTexel;
-        uniform float uDisp;
-        uniform float uHasTex;
-        varying vec2 vUv;
-        varying float vH;
-        varying vec3 vNormalW;
-        float lum(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
-        void main(){
-          vUv = uv;
-          float h = uHasTex>0.5 ? lum(texture2D(uTex, uv).rgb) : 0.0;
-          vH = h;
-          // compute a normal from the luminance gradient (finite differences)
-          float hx1 = lum(texture2D(uTex, uv + vec2(uTexel.x,0.0)).rgb);
-          float hx0 = lum(texture2D(uTex, uv - vec2(uTexel.x,0.0)).rgb);
-          float hy1 = lum(texture2D(uTex, uv + vec2(0.0,uTexel.y)).rgb);
-          float hy0 = lum(texture2D(uTex, uv - vec2(0.0,uTexel.y)).rgb);
-          vec3 n = normalize(vec3((hx0-hx1)*uDisp*4.0, (hy0-hy1)*uDisp*4.0, 1.0));
-          vNormalW = n;
-          vec3 pos = position;
-          pos.z += (h-0.35) * uDisp * uHasTex;     // displace along normal-ish (plane Z)
-          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos,1.0);
-        }`,
-      fragmentShader: `
-        precision mediump float;
-        uniform sampler2D uTex;
-        uniform vec3 uLightDir;
-        uniform vec3 uColor;
-        uniform float uOpacity;
-        uniform float uHasTex;
-        varying vec2 vUv;
-        varying float vH;
-        varying vec3 vNormalW;
-        float lum(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
-        void main(){
-          if(uHasTex < 0.5){ discard; }
-          vec3 base = texture2D(uTex, vUv).rgb;
-          float h = lum(base);
-          vec3 N = normalize(vNormalW);
-          vec3 L = normalize(uLightDir);
-          float diff = max(dot(N,L), 0.0);
-          float rim = pow(1.0 - max(N.z,0.0), 2.0)*0.5;
-          float shade = h * (0.6 + 0.66*diff) + rim*h;
-          shade = clamp(shade, 0.0, 1.4);
-          // keep the dot structure, re-tinted slightly warm toward temp on lit slopes
-          vec3 col = mix(base, base*uColor*1.4, 0.18) * (shade / max(h,0.001));
-          // near-black ground stays black (figure-ground fusion) — alpha by luminance
-          float a = smoothstep(0.05, 0.24, h) * uOpacity;
-          gl_FragColor = vec4(col, a);
-        }`
-    });
-    const mesh = new THREE.Mesh(geo, mat);
-    mesh.frustumCulled = false;
-    mesh.visible = false;
-    scene.add(mesh);
-    return {mesh, mat, uni};
-  })();
-
-  // load textures lazily for the relief (NearestFilter, keeps dots crisp)
-  const reliefTex = {};        // src -> THREE.Texture | false(failed)
-  const texLoader = new THREE.TextureLoader();
-  texLoader.crossOrigin = 'anonymous';
-  function getReliefTex(src, cb){
-    if(reliefTex[src] === false) { cb(null); return; }
-    if(reliefTex[src]) { cb(reliefTex[src]); return; }
-    texLoader.load(src, (tex)=>{
-      tex.minFilter = THREE.NearestFilter;
-      tex.magFilter = THREE.NearestFilter;
-      tex.colorSpace = THREE.SRGBColorSpace;
-      tex.generateMipmaps = false;
-      reliefTex[src]=tex;
-      // texel size for the gradient taps
-      if(tex.image && tex.image.width){
-        relief.uni.uTexel.value.set(1/tex.image.width, 1/tex.image.height);
-      }
-      cb(tex);
-    }, undefined, ()=>{ reliefTex[src]=false; cb(null); });
+  const motion = { mode:'idle', mt:0, intensity:0, intensityTarget:0,
+                   yaw:0, pitch:0, roll:0, scale:1, rise:0 };
+  function setMotion(mode){
+    motion.mode = mode || 'idle';
+    motion.mt = 0;                 // restart the per-scene motion clock
+    motion.intensityTarget = (mode && mode!=='idle') ? 1 : 0;
   }
-
-  let reliefOpacityTarget = 0;
-  let reliefAside = false, reliefSrc = null;
-
-  function placeRelief(aside){
-    const fp = faceFootprint(aside);
-    relief.mesh.scale.set(fp.w, fp.h, 1);
-    relief.mesh.position.set(fp.cx, fp.cy, 0);
+  function evalMotion(dt){
+    // intensity ease (in on assemble, out on disperse)
+    motion.intensity += (motion.intensityTarget - motion.intensity) * 0.05 * dt;
+    motion.mt += dt/60;            // ~seconds (dt is in 60fps frame-units)
+    const t = motion.mt, k = motion.intensity;
+    let yaw=0, pitch=0, roll=0, scale=1, rise=0;
+    switch(motion.mode){
+      case 'learn':     // slow, continuous, hypnotic Y turn + micro pitch nod
+        yaw   = t * 0.42;
+        pitch = Math.sin(t*0.5) * 0.05;
+        break;
+      case 'spar': {    // lean in, half-turn, then square up to camera and hold
+        const turn = (1 - Math.exp(-t*1.1));      // eased 0→1 settle
+        yaw   = (0.62 * Math.cos(turn*Math.PI) - 0.62) * 0.5 + Math.sin(t*0.5)*0.04;
+        // confident shoulder lean on entry that relaxes back to facing
+        roll  = Math.sin(t*0.9) * 0.06 * Math.exp(-t*0.7);
+        pitch = -0.05 * (1-turn);
+        break;
+      }
+      case 'words':     // contemplative orbital tilt — a slow figure-8
+        yaw   = Math.sin(t*0.55) * 0.34;
+        pitch = Math.sin(t*0.55*2.0) * 0.12;
+        roll  = Math.sin(t*0.4) * 0.025;
+        break;
+      case 'train':     // breathing scale-pulse + slow drift (effortful/alive)
+        scale = 1 + Math.sin(t*1.6)*0.045;
+        yaw   = Math.sin(t*0.33)*0.16;
+        pitch = Math.cos(t*0.42)*0.06;
+        break;
+      case 'progress':  // rises/assembles upward then a faint settle sway
+        rise  = (1 - Math.exp(-t*1.3)) * 2.2;     // lifts into place
+        yaw   = Math.sin(t*0.5)*0.10;
+        scale = 1 + (1-Math.exp(-t*1.3))*0.02;
+        break;
+      default: break;   // idle (title/end/stack) — no figure rotation
+    }
+    motion.yaw = yaw*k; motion.pitch = pitch*k; motion.roll = roll*k;
+    motion.scale = 1 + (scale-1)*k; motion.rise = rise*k;
+    if(faceRain){
+      faceRain.uni.uYaw.value   = motion.yaw;
+      faceRain.uni.uPitch.value = motion.pitch;
+      faceRain.uni.uRoll.value  = motion.roll;
+      faceRain.uni.uScale.value = motion.scale;
+      faceRain.uni.uRise.value  = motion.rise;
+    }
   }
 
   /* ============================================================
-     EFFECT COMPOSER — bloom (subtle) → custom 1-bit DITHER pass.
-     The dither pass: ordered (Bayer 4x4) threshold of the scene luminance,
-     remapped to a carbon→orange ramp so the WHOLE frame reads 1-bit
-     carbon+orange. Adds RGB-split (uSplit, pulsed on beats) + film grain.
+     RELIEF SHIM — in promo3d the faceRain grid IS the lit figure (cells
+     extruded in Z by face luminance, the portrait emerging from the code), so
+     the old separate height-map relief mesh is gone. This shim keeps the
+     `relief.*` / reliefOpacity / reliefBaseY symbols the render-loop + api
+     reference, as harmless no-ops, so the timeline bridge stays byte-stable.
+     faceRain opacity is driven by the single `gain` ease (assemble/disperse).
+     ============================================================ */
+  const relief = {
+    mesh: { visible:false, rotation:{x:0,y:0}, position:{x:0,y:0} },
+    uni: { uOpacity:{value:0}, uHasTex:{value:0}, uColor:{value:tempColor},
+           uLightDir:{value:new THREE.Vector3(0.4,0.5,0.85)} }
+  };
+
+  // relief opacity state kept as harmless no-op symbols (the loop reads them).
+  let reliefOpacityTarget = 0;
+  let reliefAside = false, reliefSrc = null;
+  let reliefBaseY = 0;
+  // place = update the focal-rain footprint for this aside state.
+  function placeRelief(aside){
+    const fp = faceFootprint(aside);
+    if(faceRain){ faceRain.uni.uFoot.value.set(fp.cx, fp.cy, fp.w, fp.h);
+                  faceRain.uni.uPivot.value.set(fp.cx, fp.cy, 0); }
+    reliefBaseY = fp.cy;
+  }
+
+  /* ============================================================
+     EFFECT COMPOSER — bloom (gentle, for the white stream-heads) → a GRADE
+     pass. NOTE: the digital rain is ALREADY 1-bit crisp glyphs, so a hard
+     ordered re-threshold here would mush the code (and design-rule 35 bans
+     Bayer/ordered on figures). The pass is now a light grade: carbon→orange
+     tone toward the brand, RGB-split on beats, film grain + a soft vignette —
+     glyph edges stay sharp, the frame reads carbon+orange.
      ============================================================ */
   const composer = new EffectComposer(renderer);
   composer.setPixelRatio(DPR);
@@ -1281,8 +1460,10 @@ const Engine = (function buildEngine(){
   const renderPass = new RenderPass(scene, camera);
   composer.addPass(renderPass);
 
-  // subtle bloom on the hot dots / lit relief
-  const bloom = new UnrealBloomPass(new THREE.Vector2(STAGE_W, STAGE_H), 0.55, 0.7, 0.62);
+  // gentle bloom — just enough to make the white stream-heads glint WITHOUT
+  // smearing the lit face cells into a blob (high threshold = only the hottest
+  // heads bloom; the face tone stays as crisp readable characters).
+  const bloom = new UnrealBloomPass(new THREE.Vector2(STAGE_W, STAGE_H), 0.30, 0.5, 0.82);
   composer.addPass(bloom);
 
   const DitherShader = {
@@ -1309,20 +1490,6 @@ const Engine = (function buildEngine(){
       varying vec2 vUv;
       float lum(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
       float rand(vec2 co){ return fract(sin(dot(co, vec2(12.9898,78.233)))*43758.5453); }
-      // 4x4 Bayer ordered-dither matrix (0..15)/16
-      float bayer(vec2 p){
-        int x = int(mod(p.x,4.0));
-        int y = int(mod(p.y,4.0));
-        int i = x + y*4;
-        float m[16];
-        m[0]=0.0;  m[1]=8.0;  m[2]=2.0;  m[3]=10.0;
-        m[4]=12.0; m[5]=4.0;  m[6]=14.0; m[7]=6.0;
-        m[8]=3.0;  m[9]=11.0; m[10]=1.0; m[11]=9.0;
-        m[12]=15.0;m[13]=7.0; m[14]=13.0;m[15]=5.0;
-        float v=0.0;
-        for(int k=0;k<16;k++){ if(k==i) v=m[k]; }
-        return (v+0.5)/16.0;
-      }
       void main(){
         vec2 uv = vUv;
         // RGB-split on beats: sample channels with a small horizontal offset
@@ -1333,21 +1500,23 @@ const Engine = (function buildEngine(){
         col.b = texture2D(tDiffuse, uv - vec2( sp, 0.0)).b;
 
         float l = lum(col);
-
-        // ordered dither: threshold luminance against the bayer matrix at
-        // device-pixel granularity (slightly chunked so the dots read).
-        vec2 px = floor(gl_FragCoord.xy / 1.5);
-        float thr = bayer(px);
-        float lit = step(thr, pow(l, 0.85));   // 1-bit decision
-
-        // map 1-bit result to carbon→(temp/ink) — orange for mid energy, ink
-        // for the hottest, carbon for the dark ground. Keeps it carbon+orange.
-        float hot = smoothstep(0.62, 0.95, l);
+        // LIGHT GRADE (not a re-threshold — keeps the crisp 1-bit glyph edges):
+        // tone the lit code toward orange→ink, sink the ground toward carbon.
+        // This unifies the frame as carbon+orange without mushing the rain.
+        float on  = smoothstep(0.05, 0.30, l);          // is this a lit glyph?
+        float hot = smoothstep(0.55, 0.95, l);          // is it a hot stream-head?
         vec3 onCol = mix(uTemp, uInk, hot);
-        vec3 ditheredCol = mix(uCarbon, onCol, lit);
+        vec3 graded = mix(uCarbon, onCol, on);
+        // preserve the scene's own colour energy a touch so temp tints read live
+        graded = mix(graded, col, 0.30);
+        vec3 outc = mix(col, graded, uAmount);
 
-        // blend dithered look with the raw scene by uAmount (1=full dither)
-        vec3 outc = mix(col, ditheredCol, uAmount);
+        // soft vignette → focuses the eye centre, gently sinks the frame edges
+        // (depth separation: dense atmosphere recedes, content reads). Floor kept
+        // high (0.80) so the full-frame rain stays visibly present to the edges.
+        vec2 d = uv - 0.5;
+        float vig = smoothstep(1.15, 0.30, dot(d,d)*2.0);
+        outc *= mix(0.80, 1.0, vig);
 
         // faint film grain
         float g = (rand(uv*uResolution + uTime) - 0.5) * uGrain;
@@ -1368,8 +1537,8 @@ const Engine = (function buildEngine(){
   const camState = {
     baseZ: CAM_BASE_Z, zTarget: CAM_BASE_Z, z: CAM_BASE_Z,
     kx:0, ky:0, kdecay:0,
-    ax:1.1, ay:0.7,          // world-unit drift amplitude
-    rotAmp:0.018             // subtle orbit (radians)
+    ax:1.7, ay:1.05,         // world-unit drift amplitude (deeper parallax)
+    rotAmp:0.030             // subtle orbit (radians) — figure clearly in 3D
   };
   function camCut(dir){
     if(REDUCED) return;
@@ -1380,8 +1549,9 @@ const Engine = (function buildEngine(){
   function setCamScene(kind){
     // gentle per-scene dolly target: features sit a touch closer, title/ends wider
     if(REDUCED){ camState.zTarget = CAM_BASE_Z; return; }
-    if(kind==='feature') camState.zTarget = CAM_BASE_Z - 4;
-    else if(kind==='title' || kind==='end') camState.zTarget = CAM_BASE_Z + 2;
+    // deeper dolly range → the figure clearly occupies 3D space, not a backdrop.
+    if(kind==='feature') camState.zTarget = CAM_BASE_Z - 8;
+    else if(kind==='title' || kind==='end') camState.zTarget = CAM_BASE_Z + 4;
     else camState.zTarget = CAM_BASE_Z;
   }
 
@@ -1401,53 +1571,46 @@ const Engine = (function buildEngine(){
 
   api.setSwarmFace = function(src, aside){ buildTargets(src, aside); };
 
+  // ASSEMBLE — bind the face into the focal rain + ramp it up (the portrait
+  // emerges from the falling code). progress 0→1 = scattered→formed, gain = fade.
   api.assemble = function(src, aside){
-    if(REDUCED || !swarm) return;
-    const ok = buildTargets(src, aside);
-    if(!ok){ gainTarget=0; return; }
-    progress = 0; progressTarget = 1;
+    if(REDUCED || !faceRain) return;
+    reliefSrc = src; reliefAside = aside;
+    buildTargets(src, aside);              // optimistic bind (texture decodes async)
+    progress = 0.0; progressTarget = 1;
     gain = 0.0; gainTarget = 1;
     cloudJit = 1; cloudJitTarget = 0.12;
   };
   api.disperse = function(){
-    if(REDUCED || !swarm) return;
-    progressTarget = 0;
+    if(REDUCED || !faceRain) return;
+    progressTarget = 0;                    // streams thin out + fade
     gainTarget = 0;
     cloudJitTarget = 1;
   };
+  // BURST — used on title/end/stack (no face there). Just dissolve the focal
+  // rain quickly so the centred type owns the frame; the ambient layers persist.
   api.burst = function(){
-    if(REDUCED || !swarm) return;
-    // re-seed targets to a wide scatter so the field explodes outward
-    const at = swarm.geo.getAttribute('aTarget');
-    const ab = swarm.geo.getAttribute('aBright');
-    const arr = at.array, br = ab.array, N = swarm.N;
-    for(let i=0;i<N;i++){
-      const a=Math.random()*Math.PI*2, u=Math.random()*2-1, r=20+Math.random()*26;
-      const sq=Math.sqrt(1-u*u);
-      arr[i*3]=Math.cos(a)*sq*r*1.3; arr[i*3+1]=u*r*0.8; arr[i*3+2]=Math.sin(a)*sq*r-6;
-      br[i]=0.5+Math.random()*0.4;
-    }
-    at.needsUpdate=true; ab.needsUpdate=true;
-    progress=0; progressTarget=0; gain=0.9; gainTarget=0; cloudJit=1; cloudJitTarget=1;
+    if(REDUCED || !faceRain) return;
+    faceRain.uni.uHasFace.value = 0;       // no face → focal grid goes dark
+    progress = 0; progressTarget = 0; gain = 0; gainTarget = 0; cloudJitTarget = 1;
   };
 
+  // RELIEF-ON — in promo3d the faceRain IS the relief, so this just guarantees
+  // the face texture is bound + footprint placed for the current aside (assemble
+  // already ramped the visible gain). Kept so the timeline bridge is unchanged.
   api.reliefOn = function(src, aside){
-    if(REDUCED) return;
+    if(REDUCED || !faceRain) return;
     reliefSrc = src; reliefAside = aside;
     placeRelief(aside);
-    getReliefTex(src, (tex)=>{
-      if(!tex){ relief.uni.uHasTex.value = 0; relief.mesh.visible=false; return; }
-      relief.uni.uTex.value = tex;
-      relief.uni.uHasTex.value = 1;
-      relief.mesh.visible = true;
-      reliefOpacityTarget = 1;
-    });
+    buildTargets(src, aside);
+    reliefOpacityTarget = 1;               // no-op shim flag
   };
   api.reliefOff = function(){ reliefOpacityTarget = 0; };
   api.setAside = function(aside){ if(reliefSrc){ reliefAside=aside; placeRelief(aside); } };
 
   api.camCut = camCut;
   api.setCamScene = setCamScene;
+  api.setMotion = setMotion;      // per-feature 3D figure motion
   api.beat = beat;
 
   api.resize = function(){ /* fixed 1280x720 internal res — nothing to do */ };
@@ -1482,35 +1645,42 @@ const Engine = (function buildEngine(){
     camera.lookAt(cx*0.3, cy*0.3, 0);
     pushCamVarsToDOM(cx, cy, ry);
 
-    // --- swarm easing ---
-    if(swarm){
+    // --- focal face-rain easing (progress = formed, gain = master opacity) ---
+    if(faceRain){
       progress += (progressTarget - progress)*0.055*dt;
       gain     += (gainTarget - gain)*0.06*dt;
-      cloudJit += (cloudJitTarget - cloudJit)*0.05*dt;
-      swarm.uni.uProgress.value = progress;
-      swarm.uni.uTime.value = T;
-      swarm.uni.uGain.value = gain;
-      swarm.uni.uCloudJit.value = cloudJit;
-      swarm.uni.uColor.value = tempColor;
+      cloudJit += (cloudJitTarget - cloudJit)*0.05*dt;   // kept (no-op alias)
+      faceRain.uni.uProgress.value = progress;
+      faceRain.uni.uTime.value = T;
+      faceRain.uni.uGain.value = gain;
+      faceRain.uni.uColor.value = tempColor;
     }
+    // --- ambient rain layers: ALWAYS alive so no frame is ever empty (the far
+    //     + mid code keeps falling between figures; dimmed so content reads). The
+    //     ambient is CLEARED where the focal figure sits (scaled by face gain) so
+    //     the portrait reads against cleaner space — depth separation. ---
+    if(faceRain){
+      const f = faceRain.uni.uFoot.value, g = gain * faceRain.uni.uHasFace.value;
+      // clear box (slightly tighter than the footprint), faded by how present the face is
+      const cw = f.z*0.42*g, ch = f.w*0.46*g;
+      if(farRain) farRain.uni.uClear.value.set(f.x, f.y, cw, ch);
+      if(midStreams) midStreams.uni.uClear.value.set(f.x, f.y, cw*0.92, ch*0.92);
+    }
+    if(farRain){ farRain.uni.uTime.value = T; farRain.uni.uColor.value = tempColor; }
+    if(midStreams){ midStreams.uni.uTime.value = T; midStreams.uni.uColor.value = tempColor; }
 
-    // --- relief easing + moving key light ---
+    // --- per-feature 3D figure motion (yaw/pitch/roll/scale/rise) ---
+    evalMotion(dt);
+
+    // --- relief shim ease (no-op: faceRain carries the figure now) ---
     relief.uni.uOpacity.value += (reliefOpacityTarget - relief.uni.uOpacity.value)*0.07*dt;
-    if(relief.uni.uOpacity.value < 0.01) relief.mesh.visible=false;
-    else if(relief.uni.uHasTex.value>0.5) relief.mesh.visible=true;
-    if(!REDUCED){
-      relief.uni.uLightDir.value.set(
-        Math.sin(T*0.33)*0.6, Math.cos(T*0.27)*0.5 + 0.15, 0.85
-      ).normalize();
-    }
-    relief.uni.uColor.value = tempColor;
 
     // --- composer uniforms ---
     ditherPass.uniforms.uTime.value = T;
     ditherPass.uniforms.uTemp.value = tempColor;
     splitAmt += (0 - splitAmt)*0.12*dt;
     ditherPass.uniforms.uSplit.value = splitAmt;
-    bloom.strength = 0.5 + Math.min(0.35, splitAmt*0.03);
+    bloom.strength = 0.30 + Math.min(0.28, splitAmt*0.03);
 
     composer.render();
   };
@@ -1740,7 +1910,7 @@ function buildTimeline(){
   /* ---------- SCENE 0 : SWARM ASSEMBLE + kicker (0 – 3.2s) ---------- */
   at(0, ()=>{
     setTemp('train'); hudText.textContent='BOOT'; setFig(0);
-    showOnly(0); schematicHide(); Engine.setCamScene('boot');
+    showOnly(0); schematicHide(); Engine.setCamScene('boot'); Engine.setMotion('idle');
     const f=document.getElementById('face0'); f.style.opacity='0';
     const wash=document.getElementById('wash0'); if(wash) wash.style.opacity='0';
     document.getElementById('kick0').style.opacity='0';
@@ -1756,7 +1926,7 @@ function buildTimeline(){
   /* ---------- SCENE 1 : TITLE SLAM (3.2 – 6.0s) ---------- */
   at(3200, ()=>{
     setTemp('orange'); hudText.textContent='TITLE'; setFig(1);
-    showOnly(1); ditherWipe(.5); swarmBurst(); Engine.setCamScene('title');
+    showOnly(1); ditherWipe(.5); swarmBurst(); Engine.setCamScene('title'); Engine.setMotion('idle');
     const f=document.getElementById('face1');
     f.style.opacity='0'; f.style.transition='opacity .8s';
     const t=document.getElementById('title1'), s=document.getElementById('sub1'), k=document.getElementById('kick1');
@@ -1801,6 +1971,7 @@ function buildTimeline(){
       doFlash(.18);
       resetDemo(el);
       swarmAssembleFace(d.src, true);
+      Engine.setMotion(d.temp);          // distinct per-feature 3D figure motion
     });
     at(s0+760, ()=>{ const f=q('.face'); if(f) f.style.opacity='.46'; reliefOn(d.src, true, f); });
     at(s0+900, ()=>{ schematic.classList.add('faint'); schematicReveal(); });
@@ -1842,7 +2013,7 @@ function buildTimeline(){
       at(runAt+2050,()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
     }
 
-    at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; reliefOff(f); } schematicHide(); swarmDisperse(); });
+    at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; reliefOff(f); } schematicHide(); swarmDisperse(); Engine.setMotion('idle'); });
 
     cur += LEN;
   });
@@ -1851,7 +2022,7 @@ function buildTimeline(){
   const VSTART = 31100;
   at(VSTART, ()=>{
     setTemp('orange'); hudText.textContent='WHY'; setFig(7);
-    showOnly(7); blockWipe('r2l', .42); swarmBurst(); Engine.setCamScene('stack');
+    showOnly(7); blockWipe('r2l', .42); swarmBurst(); Engine.setCamScene('stack'); Engine.setMotion('idle');
     schematic.classList.remove('faint'); schematicReveal();
     const items=document.querySelectorAll('#vstack .vstack-item');
     items.forEach(it=>{ it.style.opacity='0'; it.classList.remove('anim-punch'); });
@@ -1877,7 +2048,7 @@ function buildTimeline(){
   const ESTART = 34450;
   at(ESTART, ()=>{
     setTemp('orange'); hudText.textContent='SHARPEN'; setFig(9);
-    showOnly(8); ditherWipe(.5); doFlash(.3); Engine.setCamScene('end');
+    showOnly(8); ditherWipe(.5); doFlash(.3); Engine.setCamScene('end'); Engine.setMotion('idle');
     schematic.classList.remove('faint'); schematicReveal();
     const f=document.getElementById('face8');
     f.style.opacity='0'; f.style.transition='opacity .8s';
@@ -1941,7 +2112,7 @@ function restart(){
   scenes.forEach(s=>{ s.classList.remove('face-aside'); s.style.animation=''; });
   schematicHide(); schematic.classList.remove('faint');
   [blk,blkEdge,ditherW,glitchB].forEach(el=>{ if(el) el.style.animation='none'; });
-  if(Engine.ok){ Engine.disperse(); Engine.reliefOff(); }
+  if(Engine.ok){ Engine.disperse(); Engine.reliefOff(); Engine.setMotion('idle'); }
   document.querySelectorAll('.face.relief-on').forEach(f=> f.classList.remove('relief-on'));
   buildTimeline();
   rafId = requestAnimationFrame(loop);
