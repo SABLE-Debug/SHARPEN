@@ -1,5 +1,5 @@
 // Sharpen — service worker (offline-first shell)
-const CACHE = 'sharpen-v18';
+const CACHE = 'sharpen-v19';
 const ASSETS = ['./index.html', './icon.svg', './manifest.json', './assets/veil.webp',
   './assets/face-train.webp', './assets/face-learn.webp', './assets/face-words.webp', './assets/face-spar.webp', './assets/face-progress.webp'];
 self.addEventListener('install', e => {
@@ -14,7 +14,7 @@ self.addEventListener('fetch', e => {
   const url = e.request.url;
   // Never cache the Anthropic API calls — always live.
   if (url.includes('api.anthropic.com')) return;
-  if (url.includes('promo.html')) return; // promo iterates — always serve fresh from network
+  if (url.includes('promo')) return; // promo*.html iterate (promo.html + promo3d.html) — always serve fresh from network
   e.respondWith(
     caches.match(e.request).then(hit => hit || fetch(e.request).then(res => {
       // runtime-cache same-origin GETs

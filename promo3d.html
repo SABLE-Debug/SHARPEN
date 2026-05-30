@@ -1,0 +1,1979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Daily Sharpen — promo3d (Tier-2 Three.js)</title>
+<link rel="icon" href="data:,">
+
+<!-- Cormorant Garamond display serif (same single permitted webfont as V5). -->
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,600;0,700;1,400;1,600;1,700&display=swap" rel="stylesheet">
+
+<!-- ============================================================
+     IMPORT MAP — aliases the bare 'three' specifier the postprocessing
+     addons import from, to the r160 ESM build on unpkg. Without this map
+     EffectComposer/RenderPass/etc. (which `import ... from 'three'`) fail
+     to resolve. Everything else stays in this one HTML file.
+     ============================================================ -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+    "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+  }
+}
+</script>
+
+<style>
+/* ============================================================
+   Departure Mono — 1-bit pixel font (the Sankalpa signature).
+   Same family + fallback chain the app uses. Referenced as a relative
+   sibling; if absent it degrades to Geist Mono / system mono. The JS
+   also lifts the inline base64 woff2 out of index.html at runtime so the
+   pixel signature is byte-identical to the app, fully offline.
+   ============================================================ */
+@font-face{
+  font-family:'Departure Mono';
+  src:url('assets/DepartureMono-Regular.woff2') format('woff2');
+  font-weight:400; font-style:normal; font-display:swap;
+}
+
+:root{
+  --bg:#0A0A0A;
+  --ink:#F3EFE8;
+  --mid:#8a8f96;
+  --orange:#FF6A00;
+  --orange-soft:#FF8B4A;
+  /* per-feature temperature, swapped by JS per scene */
+  --temp:#FF6A00;
+  --temp-soft:#FF8B4A;
+  --pixel:'Departure Mono','Geist Mono','SF Mono',Menlo,Consolas,monospace;
+  --serif:'Cormorant Garamond',Georgia,serif;
+  --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;
+}
+
+*{margin:0;padding:0;box-sizing:border-box}
+
+html,body{
+  width:100%;height:100%;
+  background:#000;
+  overflow:hidden;
+  font-family:var(--serif);
+  -webkit-font-smoothing:antialiased;
+}
+
+.page{
+  position:fixed;inset:0;
+  display:flex;align-items:center;justify-content:center;
+  background:#000;
+}
+
+/* ---- the 16:9 canvas (mobile-centred fixed box — NOT flex centring) -------- */
+.stage-wrap{
+  /* scaled by JS via --scale so 1280x720 fits any viewport. Centred via
+     fixed + translate(-50%,-50%) so it stays dead-centre even when the
+     unscaled 1280px box is wider than the viewport (mobile Safari flex
+     chokes on that). PRESERVED EXACTLY from V5. */
+  width:1280px;height:720px;
+  position:fixed; left:50%; top:50%;
+  transform:translate(-50%,-50%) scale(var(--scale,1));
+  transform-origin:center center;
+}
+.stage{
+  position:absolute;inset:0;
+  width:1280px;height:720px;
+  background:var(--bg);
+  overflow:hidden;
+  border-radius:2px;
+  box-shadow:
+    inset 0 0 220px 40px rgba(0,0,0,.85),
+    0 0 0 1px rgba(255,106,0,.10);
+  /* In V5 the stage was a CSS 2.5D room. In promo3d the real depth lives in
+     the Three.js PerspectiveCamera, so the DOM overlay is flat — but the
+     camera vars are still written (by the Three.js camera) so the device-
+     card shadow + rim-light still parallax against the real camera move. */
+  --camX:0px; --camY:0px; --camRX:0deg; --camRY:0deg;
+}
+
+/* the Three.js backdrop canvas — swarm + face relief, behind all content.
+   (Replaces V5's 2D swarm canvas + raw-WebGL relief canvas with one GL canvas.) */
+.gl{position:absolute;inset:0;z-index:9;pointer-events:none;display:block}
+
+/* film grain overlay (procedural, not an image) — kept as a faint top layer.
+   The composer adds its own GPU grain too; this CSS layer is a gentle backup
+   that also covers the reduced-motion path where the composer is bypassed. */
+.grain{
+  position:absolute;inset:0;pointer-events:none;z-index:60;
+  opacity:.05;mix-blend-mode:screen;
+  background-image:
+    repeating-radial-gradient(circle at 13% 27%, #fff 0 1px, transparent 1px 3px),
+    repeating-radial-gradient(circle at 71% 63%, #fff 0 1px, transparent 1px 4px);
+  background-size:7px 7px, 9px 9px;
+  animation:grainShift .5s steps(3) infinite;
+}
+@keyframes grainShift{
+  0%{transform:translate(0,0)}
+  33%{transform:translate(-2px,1px)}
+  66%{transform:translate(1px,-2px)}
+  100%{transform:translate(0,0)}
+}
+
+/* schematic corner brackets — Sankalpa technical chrome */
+.bracket{position:absolute;width:34px;height:34px;z-index:55;pointer-events:none;
+  border-color:rgba(255,106,0,.45);opacity:.7}
+.bracket.tl{top:26px;left:26px;border-top:1px solid;border-left:1px solid}
+.bracket.tr{top:26px;right:26px;border-top:1px solid;border-right:1px solid}
+.bracket.bl{bottom:26px;left:26px;border-bottom:1px solid;border-left:1px solid}
+.bracket.br{bottom:26px;right:26px;border-bottom:1px solid;border-right:1px solid}
+
+/* persistent HUD meta (top corners) */
+.hud{position:absolute;z-index:56;font-family:var(--pixel);
+  font-size:11px;letter-spacing:.18em;color:var(--mid);text-transform:uppercase}
+.hud.tl2{top:30px;left:70px}
+.hud.tr2{top:30px;right:70px;text-align:right;color:var(--temp);transition:color .25s}
+.hud-dot{display:inline-block;width:6px;height:6px;border-radius:50%;
+  background:var(--temp);margin-right:7px;vertical-align:middle;
+  box-shadow:0 0 8px var(--temp);animation:hudPulse 1.1s steps(2) infinite;transition:background .25s,box-shadow .25s}
+@keyframes hudPulse{0%,100%{opacity:1}50%{opacity:.25}}
+
+/* spec-sheet chrome — FIG. index label (bottom-left) + coordinate readout (bottom-right). */
+.fig{position:absolute;z-index:56;font-family:var(--pixel);font-size:10px;
+  letter-spacing:.16em;color:var(--mid);text-transform:uppercase;opacity:.62}
+.fig.bl2{left:70px;bottom:46px}
+.fig.br2{right:70px;bottom:46px;text-align:right;color:var(--temp);opacity:.5;transition:color .25s}
+.fig .acc{color:var(--temp);transition:color .25s}
+
+/* ruler-tick strips along the top + bottom edges — instrument-panel detail. */
+.ruler{position:absolute;left:70px;right:70px;height:7px;z-index:55;pointer-events:none;opacity:.4;
+  background-image:repeating-linear-gradient(90deg,
+    color-mix(in srgb,var(--temp) 55%,transparent) 0 1px, transparent 1px 22px);
+  transition:background-image .25s}
+.ruler.top{top:54px}
+.ruler.bot{bottom:54px;transform:scaleY(-1)}
+.ruler::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;
+  background:rgba(255,255,255,.06)}
+
+/* progress ticker along the bottom edge */
+.ticker{position:absolute;left:70px;right:70px;bottom:30px;height:2px;z-index:56;
+  background:rgba(255,255,255,.08)}
+.ticker-fill{position:absolute;left:0;top:0;height:100%;width:0;
+  background:var(--temp);box-shadow:0 0 10px var(--temp);transition:background .25s}
+.ticker-fill::after{content:"";position:absolute;right:-1px;top:-3px;width:2px;height:8px;
+  background:var(--temp);box-shadow:0 0 9px var(--temp)}
+
+/* ---- scenes -------------------------------------------------------- */
+.scene{position:absolute;inset:0;z-index:10;opacity:0;visibility:hidden}
+.scene.live{opacity:1;visibility:visible}
+
+/* face layer: a CRISP <img> resting backdrop. In promo3d the Three.js layer
+   draws the swarm (assemble/disperse) AND the lit relief; this <img> is the
+   fallback identity element (shown if WebGL/Three fails) and a faint anchor
+   under the GL relief. It sits flat (no CSS parallax — the camera is real). */
+.face{
+  position:absolute;top:50%;left:50%;
+  width:980px;height:auto;
+  transform:translate(-50%,-50%);
+  image-rendering:pixelated;image-rendering:crisp-edges;
+  filter:contrast(1.08) brightness(1.02);
+  -webkit-user-drag:none;user-select:none;
+  z-index:11; opacity:0;
+}
+.scene.face-aside .face{
+  left:auto; right:-388px;
+  transform:translateY(-50%) scale(.92);
+  opacity:.5;
+}
+/* temp colour wash over the face (multiply keeps the dither structure) */
+.face-wash{
+  position:absolute;top:50%;left:50%;
+  width:980px;height:560px;
+  transform:translate(-50%,-50%);
+  z-index:12;pointer-events:none;mix-blend-mode:color;
+  background:radial-gradient(ellipse 60% 70% at 50% 45%,var(--temp) 0%,transparent 70%);
+  opacity:0;transition:opacity .5s, background .2s;
+}
+.scene.live .face-wash{opacity:.5}
+/* when the Three.js relief is carrying the face, hide the flat <img> so the
+   GL volume reads clean (mirrors V5's .relief-on, but here the GL fully owns it). */
+.face.relief-on{opacity:0!important}
+
+/* center type column */
+.type{position:absolute;inset:0;z-index:20;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  text-align:center;pointer-events:none}
+
+.kicker{font-family:var(--pixel);text-transform:uppercase;
+  letter-spacing:.34em;font-size:18px;color:var(--temp);
+  text-shadow:0 0 18px color-mix(in srgb,var(--temp) 60%,transparent);
+  transition:color .2s}
+
+.headline{font-family:var(--serif);font-weight:600;color:var(--ink);
+  line-height:.96;letter-spacing:-.01em}
+.headline em{font-style:italic;color:var(--temp);font-weight:600;
+  text-shadow:0 0 30px color-mix(in srgb,var(--temp) 45%,transparent);transition:color .2s}
+
+.sub{font-family:var(--serif);font-style:italic;color:var(--mid);
+  font-size:30px;line-height:1.25;max-width:760px}
+
+.feat-name{font-family:var(--pixel);text-transform:uppercase;
+  letter-spacing:.18em;color:var(--ink);line-height:1;
+  text-shadow:0 0 26px color-mix(in srgb,var(--temp) 55%,transparent)}
+.feat-line{font-family:var(--serif);font-style:italic;color:var(--ink);
+  font-weight:600;line-height:1.02}
+.feat-line em{color:var(--temp);font-style:italic;transition:color .2s}
+.feat-tag{font-family:var(--pixel);text-transform:uppercase;letter-spacing:.3em;
+  font-size:13px;color:var(--temp);transition:color .2s}
+
+/* ---- legibility pass: dark scrim behind text + dark halos so words read over the swarm ---- */
+.type::before{content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background:radial-gradient(ellipse 78% 62% at 50% 52%,rgba(0,0,0,.60) 0%,rgba(0,0,0,.30) 48%,rgba(0,0,0,0) 80%)}
+.kicker{text-shadow:0 2px 10px rgba(0,0,0,.92),0 0 18px color-mix(in srgb,var(--temp) 55%,transparent)}
+.headline{text-shadow:0 3px 16px rgba(0,0,0,.92)}
+.headline em{text-shadow:0 3px 16px rgba(0,0,0,.85),0 0 30px color-mix(in srgb,var(--temp) 42%,transparent)}
+.sub{text-shadow:0 2px 12px rgba(0,0,0,.92)}
+.feat-name{text-shadow:0 4px 22px rgba(0,0,0,.97),0 1px 3px rgba(0,0,0,.96),0 0 26px color-mix(in srgb,var(--temp) 46%,transparent)}
+.feat-line{text-shadow:0 2px 14px rgba(0,0,0,.95)}
+.feat-line em{text-shadow:0 2px 14px rgba(0,0,0,.9)}
+.feat-tag{text-shadow:0 2px 8px rgba(0,0,0,.92)}
+
+/* ============================================================
+   THE REAL SHARPEN APP, IN MOTION (recreated from index.html — byte-
+   identical copy + structure to V5). The type→think→output pipeline
+   plays out INSIDE this real-looking app. DOM overlay = legible layer.
+   ============================================================ */
+.demo{position:absolute;z-index:22;left:96px;top:50%;
+  width:600px;
+  transform:translateY(-50%);
+  pointer-events:none;text-align:left}
+.app{position:relative;background:var(--bg);
+  border:1px solid #262626;border-radius:14px;padding:22px 22px 20px;
+  /* layered drop-shadow with a parallax offset driven by the real camera vars */
+  box-shadow:
+    calc(var(--camX,0px) * -1.1) calc(30px - var(--camY,0px) * 1.1) 80px rgba(0,0,0,.62),
+    0 0 0 1px rgba(0,0,0,.5),
+    0 0 0 7px rgba(14,14,14,.9),0 0 0 8px rgba(255,106,0,.10),
+    inset 0 1px 0 rgba(255,255,255,.05);
+  min-height:300px}
+.app::before{content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;
+  background:radial-gradient(120% 90% at 8% 0%,color-mix(in srgb,var(--temp) 12%,transparent),transparent 55%);
+  opacity:.7;z-index:0}
+.app::after{content:"";position:absolute;inset:0;border-radius:14px;pointer-events:none;z-index:2;
+  background:linear-gradient(calc(126deg + var(--camRY,0deg) * 6),
+    rgba(255,255,255,.07) 0%, rgba(255,255,255,0) 22%);
+  mix-blend-mode:screen;opacity:.9}
+.app > *{position:relative;z-index:1}
+
+/* masthead = real .sec-head */
+.app-head{display:flex;align-items:baseline;gap:12px;
+  padding-bottom:11px;margin-bottom:16px;border-bottom:1px solid #262626;position:relative}
+.app-head::after{content:"";position:absolute;left:0;bottom:-1px;width:34px;height:1px;
+  background:var(--temp);box-shadow:0 0 7px 0 var(--temp);opacity:.85;transition:background .2s}
+.sh-k{font-family:var(--pixel);font-size:13px;letter-spacing:.24em;text-transform:uppercase;
+  color:var(--temp);transition:color .2s}
+.sh-x{margin-left:auto;font-family:var(--pixel);font-size:12px;letter-spacing:.16em;color:#5f646b}
+
+/* real .card body inside the app */
+.panel{position:relative;background:#141414;border:1px solid #262626;border-radius:0;
+  padding:16px;overflow:hidden}
+.panel + .panel{margin-top:10px}
+.panel::before{content:"";position:absolute;left:0;right:0;top:0;height:1px;z-index:2;
+  background:linear-gradient(90deg,transparent,var(--temp),transparent);opacity:.35;transition:background .2s}
+
+/* real .lbl */
+.io-label{display:flex;align-items:center;font-family:var(--pixel);font-size:11px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--temp);line-height:1.3;margin-bottom:11px;transition:color .2s}
+.io-label::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--temp);
+  margin-right:8px;flex:none;box-shadow:0 0 7px 1px color-mix(in srgb,var(--temp) 55%,transparent);
+  animation:lblPulse 3.4s cubic-bezier(.4,0,.2,1) infinite;transition:background .2s}
+@keyframes lblPulse{0%,100%{opacity:.9}50%{opacity:1}}
+
+/* the real textarea/input */
+.field{position:relative;background:#1c1c1c;border:1px solid #262626;border-radius:0;
+  padding:13px 14px;min-height:50px;display:flex;align-items:center;
+  box-shadow:inset 0 0 0 2px #1c1c1c,inset 0 0 0 3px #262626;transition:border-color .2s,box-shadow .2s}
+.field.active{border-color:var(--temp);box-shadow:inset 0 0 0 2px #1c1c1c,inset 0 0 0 3px var(--temp)}
+.input-text{font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-size:18px;color:var(--ink);
+  letter-spacing:.005em;white-space:pre-wrap;line-height:1.25}
+.input-text .typed{color:var(--ink)}
+.input-text.placeholder{color:#5f646b;font-style:italic}
+.caret{display:inline-block;width:2px;height:20px;margin-left:1px;
+  background:var(--temp);vertical-align:-4px;transition:background .2s;
+  animation:caretBlink .9s steps(1) infinite}
+@keyframes caretBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.caret.solid{animation:none;opacity:1}
+.caret.off{display:none}
+
+/* the real flat-orange button with the 1-bit inset double-frame */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;
+  font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-weight:700;font-size:15px;
+  background:var(--temp);color:#0A0A0A;border-radius:0;padding:12px 16px;margin-top:11px;
+  box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px rgba(10,10,10,.55);
+  transition:background .2s,box-shadow .2s,transform .12s;position:relative;overflow:hidden}
+.btn.ghost{background:transparent;color:var(--ink);
+  box-shadow:inset 0 0 0 2px var(--bg),inset 0 0 0 3px #262626}
+.btn.pressed{transform:translateY(1px) scale(.985)}
+.btn .sheen{position:absolute;top:0;bottom:0;width:42%;left:-60%;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.30),transparent);
+  transform:skewX(-18deg);opacity:0}
+.btn.run .sheen{animation:btnSheen .6s ease-out}
+@keyframes btnSheen{0%{left:-60%;opacity:1}100%{left:130%;opacity:1}}
+
+/* model "thinking" row */
+.think{display:flex;align-items:center;gap:11px;margin-top:14px;
+  font-family:var(--pixel);font-size:12px;letter-spacing:.12em;
+  color:var(--temp);text-transform:uppercase;opacity:0;transition:color .2s}
+.think .dots{display:inline-flex;gap:5px}
+.think .dots i{width:7px;height:7px;border-radius:50%;background:var(--temp);
+  display:inline-block;animation:thinkPulse 1.25s cubic-bezier(.4,0,.2,1) infinite;transition:background .2s}
+.think .dots i:nth-child(2){animation-delay:.18s}
+.think .dots i:nth-child(3){animation-delay:.36s}
+@keyframes thinkPulse{0%,60%,100%{opacity:.28;transform:translateY(0) scale(.85)}30%{opacity:1;transform:translateY(-4px) scale(1)}}
+
+/* the real .fb feedback block */
+.out{margin-top:14px;opacity:0}
+.fb{font-size:16px;line-height:1.5;border-left:2px solid var(--temp);padding:4px 0 4px 12px;
+  color:#8a8f96;font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);transition:border-color .2s}
+.fb b{color:var(--ink);font-weight:600}
+.fb .stat{color:var(--temp);font-weight:700;transition:color .2s}
+.out-text{font-family:var(--serif);font-size:22px;line-height:1.32;color:var(--ink);font-style:italic}
+.out-text b{font-style:normal;font-weight:600;color:var(--temp);transition:color .2s}
+
+/* SPAR — real message bubbles + stance card */
+.stance{position:relative;background:linear-gradient(180deg,#1d1611,#181109);
+  border:1px solid #3a2a18;border-radius:0;padding:10px 13px;overflow:hidden}
+.stance::after{content:"";position:absolute;left:0;top:0;bottom:0;width:2px;
+  background:var(--temp);box-shadow:0 0 10px 0 var(--temp);opacity:.7;transition:background .2s}
+.stance .st-lbl{font-family:var(--pixel);font-size:10px;letter-spacing:.16em;text-transform:uppercase;
+  color:var(--temp);margin-bottom:4px;transition:color .2s}
+.stance .st-pt{font-family:var(--serif);font-size:17px;color:var(--ink);line-height:1.25}
+.msg{padding:10px 13px;border-radius:0;font-size:15px;max-width:90%;
+  font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);line-height:1.4}
+.msg.you{background:#1c1c1c;border:1px solid #262626;margin-left:auto;text-align:left}
+.msg.ai{background:#1a1410;border:1px solid #3a2a18;margin-right:auto}
+.msg.ai b{color:var(--temp);font-weight:600;transition:color .2s}
+.msg-typing{display:inline-flex;align-items:center;gap:5px;padding:13px 15px;
+  background:#1a1410;border:1px solid #3a2a18;border-radius:0;margin-right:auto}
+.msg-typing i{width:7px;height:7px;border-radius:50%;background:var(--temp);display:inline-block;
+  animation:thinkPulse 1.25s cubic-bezier(.4,0,.2,1) infinite;transition:background .2s}
+.msg-typing i:nth-child(2){animation-delay:.18s}.msg-typing i:nth-child(3){animation-delay:.36s}
+.msg-stack{display:flex;flex-direction:column;gap:9px;margin-top:12px}
+
+/* WORDS — the real word card row */
+.word{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;padding:4px 0}
+.word .up{font-family:var(--serif);font-size:24px;font-weight:600;color:var(--ink);line-height:1.1}
+.word .up .eq{color:#8a8f96;font-weight:400}
+.word .ex{font-size:13px;color:#5f646b;font-style:italic;margin-top:6px;
+  font-family:var(--sans,-apple-system,'Segoe UI',sans-serif)}
+.word-actions{display:flex;flex-direction:column;gap:6px;flex:none}
+.say{font-family:var(--pixel);font-size:11px;letter-spacing:.12em;text-transform:uppercase;
+  color:var(--temp);border:1px solid #262626;padding:2px 9px;display:inline-block;transition:color .2s}
+.word-count{font-family:var(--pixel);font-size:11px;letter-spacing:.04em;color:#5f646b;margin-bottom:11px}
+
+/* PROGRESS — real sharpness big-number + bar + streak stat cluster */
+.big{font-family:var(--serif);font-size:64px;font-weight:600;color:var(--ink);line-height:1;
+  letter-spacing:.01em;text-shadow:0 0 22px color-mix(in srgb,var(--temp) 16%,transparent);transition:color .2s}
+.big .slash{font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-size:18px;color:#8a8f96;font-weight:400}
+.bar{height:10px;background:#1c1c1c;border:1px solid #262626;border-radius:0;overflow:hidden;margin:14px 0 6px;position:relative}
+.bar > i{display:block;height:100%;width:0;background:var(--temp);transition:width .9s cubic-bezier(.22,1,.36,1);position:relative;overflow:hidden}
+.bar > i::after{content:"";position:absolute;inset:0;
+  background:linear-gradient(90deg,transparent,rgba(255,255,255,.22),transparent);
+  transform:translateX(-100%);animation:barSheen 2.6s cubic-bezier(.4,0,.2,1) infinite}
+@keyframes barSheen{to{transform:translateX(100%)}}
+.spark-wrap{margin-top:6px;position:relative;height:64px}
+.spark{position:absolute;inset:0}
+.spark path{fill:none;stroke:var(--temp);stroke-width:2.2;
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--temp) 55%,transparent));
+  stroke-dasharray:1;stroke-dashoffset:1;transition:stroke .2s}
+.spark .axis{stroke:rgba(255,255,255,.1);stroke-width:1;filter:none}
+.stat-row{display:flex;gap:12px;margin-top:14px}
+.stat-cell{flex:1}
+.stat-cell .lbl{display:flex;align-items:center;font-family:var(--pixel);font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;color:var(--temp);margin-bottom:5px;transition:color .2s}
+.stat-cell .lbl::before{content:"";width:4px;height:4px;border-radius:50%;background:var(--temp);
+  margin-right:6px;flex:none;transition:background .2s}
+.stat-cell .num{font-family:var(--serif);font-size:34px;font-weight:600;color:var(--ink);line-height:1;transition:color .2s}
+.stat-cell .cap{font-family:var(--sans,-apple-system,'Segoe UI',sans-serif);font-size:11px;color:#5f646b;margin-top:3px}
+
+/* result tag */
+.tag{display:inline-flex;align-items:center;gap:8px;margin-top:14px;
+  font-family:var(--pixel);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--temp);border:1px solid color-mix(in srgb,var(--temp) 50%,transparent);
+  border-radius:0;padding:7px 13px;opacity:0;transition:color .2s,border-color .2s;
+  box-shadow:0 0 16px color-mix(in srgb,var(--temp) 14%,transparent) inset}
+.tag .chk{color:var(--temp);font-weight:700}
+
+.counter{font-family:var(--serif);font-weight:600;font-size:64px;
+  color:var(--temp);line-height:.9;letter-spacing:.01em;transition:color .2s;
+  text-shadow:0 0 34px color-mix(in srgb,var(--temp) 40%,transparent)}
+
+/* ---- value-stack scene -------------------------------------------- */
+.vstack{position:absolute;inset:0;z-index:20;
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px}
+.vstack-item{font-family:var(--pixel);text-transform:uppercase;letter-spacing:.22em;
+  font-size:38px;color:var(--ink);opacity:0;line-height:1.18;
+  transform:translateY(14px)}
+.vstack-item .ix{color:var(--orange);font-size:18px;margin-right:14px;
+  vertical-align:middle;text-shadow:0 0 12px var(--orange)}
+.vstack-time{margin-top:26px;font-family:var(--serif);font-style:italic;font-weight:600;
+  font-size:56px;color:var(--orange);opacity:0;transform:scale(.7);
+  text-shadow:0 0 34px rgba(255,106,0,.5)}
+
+/* ---- end card ------------------------------------------------------ */
+.end-mark{font-family:var(--serif);font-weight:700;color:var(--ink);
+  font-size:118px;line-height:.9;letter-spacing:-.015em}
+.end-mark em{font-style:italic;color:var(--orange);
+  text-shadow:0 0 40px rgba(255,106,0,.5)}
+.end-line{font-family:var(--serif);font-style:italic;color:var(--mid);
+  font-size:28px;margin-top:14px}
+.end-url{font-family:var(--pixel);text-transform:uppercase;letter-spacing:.22em;
+  font-size:20px;color:var(--orange);margin-top:34px;
+  padding:11px 22px;border:1px solid rgba(255,106,0,.5);border-radius:5px;
+  text-shadow:0 0 14px rgba(255,106,0,.4);
+  box-shadow:0 0 24px rgba(255,106,0,.12) inset}
+
+/* ============================================================
+   ANIMATION KEYFRAMES  (GPU-only: transform / opacity / filter)
+   ============================================================ */
+@keyframes flickerIn{
+  0%{opacity:0}10%{opacity:1}14%{opacity:.2}20%{opacity:1}
+  26%{opacity:.4}32%{opacity:1}40%{opacity:.7}100%{opacity:1}
+}
+.anim-flicker{animation:flickerIn .55s steps(1) forwards}
+
+@keyframes slamIn{
+  0%{opacity:0;transform:translateY(26px) scale(1.14)}
+  60%{opacity:1;transform:translateY(0) scale(.985)}
+  78%{transform:scale(1.012)}
+  100%{opacity:1;transform:translateY(0) scale(1)}
+}
+.anim-slam{animation:slamIn .5s cubic-bezier(.2,1.3,.3,1) forwards}
+
+@keyframes punchUp{
+  0%{opacity:0;transform:translateY(40px) scaleY(1.2)}
+  55%{opacity:1;transform:translateY(0) scaleY(.94)}
+  100%{opacity:1;transform:translateY(0) scaleY(1)}
+}
+.anim-punch{animation:punchUp .42s cubic-bezier(.18,1.4,.4,1) forwards}
+
+@keyframes fadeUp{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:translateY(0)}}
+.anim-fadeup{animation:fadeUp .5s cubic-bezier(.2,.9,.25,1) forwards}
+
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+.anim-fadein{animation:fadeIn .42s ease-out forwards}
+
+@keyframes cardIn{0%{opacity:0;transform:translateY(-50%) scale(.9)}
+  100%{opacity:1;transform:translateY(-50%) scale(1)}}
+.anim-cardin{animation:cardIn .44s cubic-bezier(.2,1.2,.3,1) forwards}
+
+/* RGB channel-split glitch — the hard-beat punctuation (kept as a DOM-level
+   fallback; the composer also does a GPU RGB-split on beats). */
+@keyframes rgbSplit{
+  0%{filter:none;transform:translate(0,0)}
+  18%{filter:drop-shadow(-7px 0 0 rgba(255,0,80,.7)) drop-shadow(7px 0 0 rgba(0,200,255,.7));transform:translate(2px,0)}
+  34%{filter:drop-shadow(6px 0 0 rgba(255,0,80,.7)) drop-shadow(-6px 0 0 rgba(0,200,255,.7));transform:translate(-2px,0)}
+  52%{filter:drop-shadow(-3px 0 0 rgba(255,0,80,.6)) drop-shadow(3px 0 0 rgba(0,200,255,.6));transform:translate(1px,0)}
+  100%{filter:none;transform:translate(0,0)}
+}
+.anim-rgb{animation:rgbSplit .34s steps(1) forwards}
+
+@keyframes punchZoom{0%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+@keyframes counterPop{0%{opacity:0;transform:translateY(18px) scale(.92)}
+  100%{opacity:1;transform:translateY(0) scale(1)}}
+.anim-counter{animation:counterPop .4s cubic-bezier(.2,1.3,.3,1) forwards}
+
+@keyframes statPop{0%{transform:scale(1)}38%{transform:scale(1.16)}100%{transform:scale(1)}}
+.anim-statpop{animation:statPop .5s cubic-bezier(.2,1.3,.3,1)}
+.anim-statpop .num{color:var(--temp);text-shadow:0 0 26px color-mix(in srgb,var(--temp) 55%,transparent)}
+
+@keyframes flashPop{0%{opacity:0}12%{opacity:.85}100%{opacity:0}}
+@keyframes swipePop{0%{background-position:120% 0;opacity:0}
+  15%{opacity:.9}85%{opacity:.9}100%{background-position:-140% 0;opacity:0}}
+
+@keyframes urlBreathe{0%,100%{box-shadow:0 0 24px rgba(255,106,0,.12) inset,0 0 0 rgba(255,106,0,0)}
+  50%{box-shadow:0 0 24px rgba(255,106,0,.2) inset,0 0 26px rgba(255,106,0,.25)}}
+
+/* white/orange flash frame between sections */
+.flash{position:absolute;inset:0;z-index:50;background:var(--orange);
+  opacity:0;pointer-events:none;mix-blend-mode:screen}
+
+/* scanline swipe used on hard cuts */
+.swipe{position:absolute;inset:0;z-index:49;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,transparent 0%,var(--temp) 48%,var(--temp) 52%,transparent 100%);
+  background-size:300% 100%;background-position:120% 0;mix-blend-mode:screen}
+
+/* ============================================================
+   SPECTER TRANSITION SYSTEM — the V4 motion grammar (DOM-level, kept
+   byte-identical from V5: block-wipe, dither-wipe, glitch-blocks, schematic).
+   ============================================================ */
+.blockwipe{position:absolute;inset:0;z-index:52;pointer-events:none;overflow:hidden}
+.blockwipe .blk{position:absolute;inset:0;background:var(--temp);
+  transform:translateX(-101%);transition:background .15s}
+.blockwipe .edge{position:absolute;top:0;bottom:0;width:6px;background:#0A0A0A;
+  box-shadow:0 0 0 2px var(--temp);transform:translateX(-40px)}
+@keyframes blkL2R{0%{transform:translateX(-101%)}46%{transform:translateX(0)}54%{transform:translateX(0)}100%{transform:translateX(101%)}}
+@keyframes blkR2L{0%{transform:translateX(101%)}46%{transform:translateX(0)}54%{transform:translateX(0)}100%{transform:translateX(-101%)}}
+@keyframes blkEdgeL2R{0%{transform:translateX(-40px)}100%{transform:translateX(1320px)}}
+@keyframes blkEdgeR2L{0%{transform:translateX(1320px)}100%{transform:translateX(-40px)}}
+@keyframes blkExpand{0%{transform:scaleX(0)}40%{transform:scaleX(1)}60%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+
+.ditherwipe{position:absolute;inset:0;z-index:53;pointer-events:none;opacity:0;
+  background-color:#0A0A0A;
+  background-image:
+    radial-gradient(circle at 50% 50%, var(--temp) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 50% 50%, var(--temp) 0 1px, transparent 1.2px);
+  background-size:8px 8px, 8px 8px;
+  background-position:0 0, 4px 4px;
+  mix-blend-mode:screen;transition:background-image .2s}
+@keyframes ditherIn{0%{opacity:0;transform:scale(1.04)}28%{opacity:1}72%{opacity:1}100%{opacity:0;transform:scale(.985)}}
+
+.glitchblocks{position:absolute;inset:0;z-index:53;pointer-events:none;opacity:0;
+  background-color:transparent;
+  background-image:
+    repeating-conic-gradient(var(--temp) 0% 25%, transparent 0% 50%);
+  background-size:64px 64px;mix-blend-mode:screen;transition:background-image .2s}
+@keyframes blockGlitch{
+  0%{opacity:0;clip-path:inset(0 0 100% 0)}
+  14%{opacity:.95;clip-path:inset(0 0 0 0)}
+  30%{opacity:.5;clip-path:inset(38% 0 24% 0)}
+  46%{opacity:.9;clip-path:inset(0 0 0 0)}
+  64%{opacity:.4;clip-path:inset(62% 0 0 0)}
+  100%{opacity:0;clip-path:inset(0 0 100% 0)}
+}
+
+/* BLUEPRINT SCHEMATIC — faint daily-loop wireframe, draws via stroke-dashoffset */
+.schematic{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;
+  transition:opacity .5s}
+.schematic.on{opacity:.5}
+.schematic.faint.on{opacity:.16}
+.schematic svg{position:absolute;inset:0;width:100%;height:100%}
+.schematic .ln{fill:none;stroke:var(--temp);stroke-width:1.1;opacity:.55;
+  stroke-dasharray:1;stroke-dashoffset:1;transition:stroke .25s}
+.schematic .ln.draw{animation:schematicDraw 1.4s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes schematicDraw{to{stroke-dashoffset:0}}
+.schematic .nd{fill:none;stroke:var(--temp);stroke-width:1.1;opacity:0;transition:stroke .25s}
+.schematic .nd.lit{opacity:.7;animation:ndPulse 2.6s ease-in-out infinite}
+@keyframes ndPulse{0%,100%{opacity:.35}50%{opacity:.8}}
+.schematic .tk{stroke:rgba(255,255,255,.18);stroke-width:1}
+.schematic .lbl-t{font-family:'Departure Mono','Geist Mono',monospace;font-size:9px;
+  letter-spacing:.14em;fill:var(--temp);opacity:0;transition:fill .25s}
+.schematic .lbl-t.lit{opacity:.55}
+
+/* ---- replay button (OUTSIDE the 16:9 frame) ----------------------- */
+.replay{position:fixed;bottom:18px;right:18px;z-index:200;
+  font-family:var(--pixel);text-transform:uppercase;letter-spacing:.18em;
+  font-size:12px;color:var(--mid);background:#0d0d0d;
+  border:1px solid rgba(255,106,0,.3);border-radius:5px;
+  padding:9px 14px;cursor:pointer;transition:color .15s,border-color .15s,box-shadow .15s}
+.replay:hover{color:var(--orange);border-color:var(--orange);
+  box-shadow:0 0 18px rgba(255,106,0,.25)}
+
+/* reduced-motion: collapse motion to instant, keep the show legible */
+@media (prefers-reduced-motion:reduce){
+  .grain,.hud-dot,.caret,.think .dots i,.io-label::before,.msg-typing i,
+  .bar > i::after,.btn .sheen,.btn.run .sheen,.schematic .nd.lit{animation:none}
+  .anim-flicker,.anim-slam,.anim-punch,.anim-fadeup,.anim-fadein,
+  .anim-cardin,.anim-rgb,.anim-counter,.anim-statpop{animation-duration:.001s}
+  .blockwipe .blk,.blockwipe .edge,.ditherwipe,.glitchblocks{animation:none!important;opacity:0!important}
+  .schematic .ln.draw{animation:none;stroke-dashoffset:0}
+  .bar > i{transition-duration:.001s}
+  .caret{opacity:1}
+  .face{image-rendering:auto}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <div class="stage-wrap" id="stageWrap">
+    <div class="stage" id="stage">
+
+      <!-- the Three.js backdrop canvas (swarm + face relief + post-fx) -->
+      <canvas class="gl" id="gl"></canvas>
+
+      <!-- blueprint schematic — faint daily-loop wireframe, draws itself in. -->
+      <div class="schematic" id="schematic">
+        <svg viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <path class="ln" id="schLoop" d="M 640 168 L 1006 360 L 880 654 L 400 654 L 274 360 Z"></path>
+          <path class="ln" id="schSpokes" d="M 640 411 L 640 168 M 640 411 L 1006 360 M 640 411 L 880 654 M 640 411 L 400 654 M 640 411 L 274 360"></path>
+          <circle class="nd" id="schN0" cx="640" cy="168" r="16"></circle>
+          <circle class="nd" id="schN1" cx="1006" cy="360" r="16"></circle>
+          <circle class="nd" id="schN2" cx="880" cy="654" r="16"></circle>
+          <circle class="nd" id="schN3" cx="400" cy="654" r="16"></circle>
+          <circle class="nd" id="schN4" cx="274" cy="360" r="16"></circle>
+          <circle class="nd" id="schHub" cx="640" cy="411" r="9"></circle>
+          <line class="tk" x1="640" y1="138" x2="640" y2="120"></line>
+          <line class="tk" x1="1036" y1="360" x2="1058" y2="360"></line>
+          <line class="tk" x1="244" y1="360" x2="222" y2="360"></line>
+          <text class="lbl-t" id="schL0" x="654" y="120">01</text>
+          <text class="lbl-t" id="schL1" x="1042" y="356">02</text>
+          <text class="lbl-t" id="schL2" x="900" y="690">03</text>
+          <text class="lbl-t" id="schL3" x="356" y="690">04</text>
+          <text class="lbl-t" id="schL4" x="196" y="356">05</text>
+        </svg>
+      </div>
+
+      <!-- persistent chrome -->
+      <div class="bracket tl"></div><div class="bracket tr"></div>
+      <div class="bracket bl"></div><div class="bracket br"></div>
+      <div class="ruler top"></div><div class="ruler bot"></div>
+      <div class="hud tl2">SHARPEN · PROMO</div>
+      <div class="hud tr2" id="hudPhase"><span class="hud-dot"></span><span id="hudPhaseText">BOOT</span></div>
+      <div class="fig bl2">FIG. <span class="acc" id="figNo">00</span> / 09</div>
+      <div class="fig br2" id="figCoord">X·000 Y·000</div>
+      <div class="ticker"><div class="ticker-fill" id="ticker"></div></div>
+
+      <!-- effect layers -->
+      <div class="flash" id="flash"></div>
+      <div class="swipe" id="swipe"></div>
+      <div class="blockwipe" id="blockwipe"><div class="blk" id="blk"></div><div class="edge" id="blkEdge"></div></div>
+      <div class="ditherwipe" id="ditherwipe"></div>
+      <div class="glitchblocks" id="glitchblocks"></div>
+      <div class="grain"></div>
+
+      <!-- ============ SCENE 0 : ASSEMBLE / KICKER ============ -->
+      <section class="scene" data-scene="0">
+        <img class="face" id="face0" alt="" src="assets/face-train.webp">
+        <div class="face-wash" id="wash0"></div>
+        <div class="type">
+          <div class="kicker" id="kick0" style="font-size:22px">SANKALPA · DAILY EDGE</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 1 : TITLE SLAM ============ -->
+      <section class="scene" data-scene="1">
+        <img class="face" id="face1" alt="" src="assets/face-train.webp">
+        <div class="type">
+          <div class="kicker" id="kick1" style="margin-bottom:18px">SANKALPA · DAILY EDGE</div>
+          <h1 class="headline" id="title1" style="font-size:140px">Daily <em>Sharpen</em></h1>
+          <p class="sub" id="sub1" style="margin-top:24px">The daily gym for the thinking AI can&rsquo;t build for you.</p>
+        </div>
+      </section>
+
+      <!-- ============ SCENES 2-6 : THE REAL SHARPEN APP, IN MOTION ============ -->
+
+      <!-- 02 · LEARN ------------------------------------------------ -->
+      <section class="scene feature" data-scene="2">
+        <img class="face" alt="" src="assets/face-learn.webp">
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="learn">
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">LEARN</span><span class="sh-x">02 / INGEST</span></div>
+            <div class="panel">
+              <div class="io-label">DROP IN A TERM</div>
+              <div class="field"><span class="input-text"><span class="typed" data-type="CRM"></span><span class="caret"></span></span></div>
+              <div class="btn">Learn it &#9656;<span class="sheen"></span></div>
+              <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>EXPLAINING IN PLAIN ENGLISH</span></div>
+              <div class="out">
+                <div class="fb"><b>A system that tracks every customer</b> &mdash; who they are, what they bought, when you last spoke.</div>
+              </div>
+            </div>
+            <div class="tag" data-tag><span class="chk">&check;</span>OWNED &middot; IN YOUR DECK</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 03 · SPAR ------------------------------------------------- -->
+      <section class="scene feature" data-scene="3">
+        <img class="face" alt="" src="assets/face-spar.webp">
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="spar">
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">SPAR</span><span class="sh-x">04 / ARENA</span></div>
+            <div class="panel">
+              <div class="io-label">STATE YOUR POSITION</div>
+              <div class="field"><span class="input-text"><span class="typed" data-type="remote work beats the office"></span><span class="caret"></span></span></div>
+              <div class="btn">Step into the ring &#9656;<span class="sheen"></span></div>
+              <div class="msg-stack">
+                <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CLAUDE IS COUNTERING</span></div>
+                <div class="out" data-spar-reply>
+                  <div class="msg ai"><b>&ldquo;Then why does every org you admire still fight for office time?&rdquo;</b> Proximity compounds trust faster than any call.</div>
+                </div>
+              </div>
+            </div>
+            <div class="tag" data-tag><span class="chk">&check;</span>NOW DEFEND IT</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 · WORDS ------------------------------------------------ -->
+      <section class="scene feature" data-scene="4">
+        <img class="face" alt="" src="assets/face-words.webp">
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="words">
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">WORDS</span><span class="sh-x">03 / LEXICON</span></div>
+            <div class="panel">
+              <div class="word-count">TODAY&rsquo;S CARD &middot; 1 OF 20</div>
+              <div class="out" data-word>
+                <div class="word">
+                  <div>
+                    <div class="up">ameliorate <span class="eq">: improve / ease</span></div>
+                  </div>
+                  <div class="word-actions">
+                    <span class="say">say</span>
+                  </div>
+                </div>
+              </div>
+              <div class="btn-row" style="display:flex;gap:9px">
+                <div class="btn" data-got>Got it<span class="sheen"></span></div>
+                <div class="btn ghost">Review</div>
+              </div>
+              <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>FITTING IT TO HOW YOU WRITE</span></div>
+            </div>
+            <div class="tag" data-tag><span class="chk">&check;</span>GOT IT</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 05 · TRAIN ------------------------------------------------ -->
+      <section class="scene feature" data-scene="5">
+        <img class="face" alt="" src="assets/face-train.webp">
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="train">
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">TRAIN</span><span class="sh-x">01 / DAILY EDGE</span></div>
+            <div class="panel">
+              <div class="io-label">DAILY DRILL &middot; RECALL</div>
+              <div class="out" data-drill style="opacity:1">
+                <div class="msg ai" style="max-width:100%">Name the cognitive bias: <b>we overvalue what we already own.</b></div>
+              </div>
+              <div class="field" style="margin-top:11px"><span class="input-text"><span class="typed" data-type="endowment effect"></span><span class="caret"></span></span></div>
+              <div class="btn">Send &#9656;<span class="sheen"></span></div>
+              <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CHECKING</span></div>
+            </div>
+            <div class="tag" data-tag><span class="chk">&check;</span>PULLED FROM MEMORY</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 06 · PROGRESS --------------------------------------------- -->
+      <section class="scene feature" data-scene="6">
+        <img class="face" alt="" src="assets/face-progress.webp">
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="progress">
+          <div class="app anim-target">
+            <div class="app-head"><span class="sh-k">PROGRESS</span><span class="sh-x">05 / TELEMETRY</span></div>
+            <div class="panel">
+              <div class="io-label">SHARPNESS &middot; LAST 30 DAYS</div>
+              <div class="big"><span id="sharpNow">0</span><span class="slash"> / 100</span></div>
+              <div class="bar"><i id="sharpBar"></i></div>
+              <div class="spark-wrap">
+                <svg class="spark" id="sparkSvg" viewBox="0 0 540 64" preserveAspectRatio="none">
+                  <line class="axis" x1="0" y1="63" x2="540" y2="63"></line>
+                  <path id="sparkPath" d="M2,58 C70,56 120,46 180,40 C250,32 300,26 360,18 C420,11 480,8 538,4"></path>
+                </svg>
+              </div>
+              <div class="stat-row">
+                <div class="stat-cell"><div class="lbl">STREAK</div><div class="num"><span id="progCounter">0</span></div><div class="cap">DAY STREAK</div></div>
+                <div class="stat-cell"><div class="lbl">OWNED</div><div class="num" id="ownNum">0</div><div class="cap">WORDS</div></div>
+                <div class="stat-cell"><div class="lbl">DRILLS</div><div class="num" id="drillNum">0</div><div class="cap">LIFETIME</div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 7 : VALUE STACK ============ -->
+      <section class="scene" data-scene="7">
+        <div class="vstack" id="vstack">
+          <div class="vstack-item"><span class="ix">01</span>RECALL</div>
+          <div class="vstack-item"><span class="ix">02</span>REASONING</div>
+          <div class="vstack-item"><span class="ix">03</span>ARTICULATION</div>
+          <div class="vstack-item"><span class="ix">04</span>CROSS-DOMAIN</div>
+          <div class="vstack-item"><span class="ix">05</span>QUANT</div>
+          <div class="vstack-time" id="vtime">~8 minutes a day.</div>
+        </div>
+      </section>
+
+      <!-- ============ SCENE 8 : END CARD ============ -->
+      <section class="scene" data-scene="8">
+        <img class="face" id="face8" alt="" src="assets/face-spar.webp">
+        <div class="type">
+          <div class="kicker" id="kick8" style="margin-bottom:18px">TRAIN DAILY · SANKALPA</div>
+          <h1 class="end-mark" id="endmark">Daily <em>Sharpen</em></h1>
+          <p class="end-line" id="endline">Train the thinking AI can&rsquo;t build for you.</p>
+          <div class="end-url" id="endurl">sable-debug.github.io/SHARPEN</div>
+        </div>
+      </section>
+
+    </div><!-- /stage -->
+  </div><!-- /stage-wrap -->
+</div><!-- /page -->
+
+<button class="replay" id="replayBtn" aria-label="Replay">&#8635; Replay</button>
+
+<script type="module">
+import * as THREE from 'three';
+import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+import { ShaderPass } from 'three/addons/postprocessing/ShaderPass.js';
+import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+"use strict";
+
+const REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/* ------------------------------------------------------------------
+   Pixel-font guarantee: lift Departure Mono's inline base64 woff2 out of
+   index.html (same folder) and register it under the SAME family name, so
+   the pixel signature is byte-identical to the app with zero external dep.
+   If the fetch fails (file:// / strict), the CSS @font-face relative path +
+   mono fallback chain cover it. PRESERVED from V5.
+   ------------------------------------------------------------------ */
+(function loadAppFont(){
+  if(!('fetch' in window) || !('fonts' in document)) return;
+  fetch('index.html').then(r=> r.ok ? r.text() : Promise.reject())
+    .then(html=>{
+      const m = html.match(/url\((?:'|")?(data:font\/woff2;base64,[A-Za-z0-9+/=]+)(?:'|")?\)/);
+      if(!m) return;
+      const ff = new FontFace('Departure Mono', `url(${m[1]})`, {weight:'400',style:'normal'});
+      return ff.load().then(loaded=>{ document.fonts.add(loaded); });
+    })
+    .catch(()=>{});
+})();
+
+/* ---- responsive scale: fit 1280x720 into the viewport (PRESERVED) ---- */
+const wrap = document.getElementById('stageWrap');
+function fit(){
+  const s = Math.min(window.innerWidth/1280, window.innerHeight/720);
+  wrap.style.setProperty('--scale', s.toFixed(4));
+}
+window.addEventListener('resize', fit, {passive:true});
+fit();
+
+/* ---- per-feature temperature colours (PRESERVED EXACT HEX) ---- */
+const TEMP = {
+  train:    ['#FF6A00','#FF8B4A'],
+  learn:    ['#4F8FFF','#86B4FF'],
+  words:    ['#5FD08A','#9DE7BC'],
+  spar:     ['#E7B84A','#F2D283'],
+  progress: ['#8B95A8','#B9C0CC'],
+  orange:   ['#FF6A00','#FF8B4A']
+};
+const TEMP_RGB = {
+  train:[255,106,0], learn:[79,143,255], words:[95,208,138],
+  spar:[231,184,74], progress:[139,149,168], orange:[255,106,0]
+};
+const stage = document.getElementById('stage');
+let curTempRGB = TEMP_RGB.train.slice();
+const tempColor = new THREE.Color(curTempRGB[0]/255, curTempRGB[1]/255, curTempRGB[2]/255);
+const tempColorTarget = tempColor.clone();
+function setTemp(name){
+  const [t,ts] = TEMP[name] || TEMP.orange;
+  stage.style.setProperty('--temp', t);
+  stage.style.setProperty('--temp-soft', ts);
+  const rgb = TEMP_RGB[name] || TEMP_RGB.orange;
+  curTempRGB = rgb;
+  tempColorTarget.setRGB(rgb[0]/255, rgb[1]/255, rgb[2]/255);
+}
+
+const FACE_SRCS = ['assets/face-learn.webp','assets/face-spar.webp',
+  'assets/face-words.webp','assets/face-train.webp','assets/face-progress.webp'];
+
+/* ============================================================
+   THREE.JS ENGINE (the Tier-2 core) — one WebGL canvas behind the DOM.
+   Owns: a real PerspectiveCamera (dolly/parallax/orbit drift), a GPU
+   particle dither-swarm (THREE.Points, ~120k pts, vertex-shader morph
+   between a dispersed cloud and per-face target positions), a face RELIEF
+   mesh (luminance height-map vertex displacement, lit by a moving
+   directional light), and an EffectComposer chain (bloom → custom 1-bit
+   dither + RGB-split + grain fragment pass) so the whole frame unifies
+   under the Sankalpa dither at the GPU level — carbon + orange only.
+
+   Bulletproof: if WebGL is unavailable, the constructor throws → we catch,
+   hide the canvas, and the crisp <img> faces carry the show flat (V5 path).
+   ============================================================ */
+const STAGE_W = 1280, STAGE_H = 720;
+/* particle budget scales with device class. mid-tier mobile / low-power gets a
+   lighter swarm so we hold ~60fps; desktop gets the full 120k hero density.
+   (coarse-pointer + low logical-core count is the cheap mobile heuristic.) */
+const IS_MOBILE = window.matchMedia('(pointer:coarse)').matches ||
+                  (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4);
+const PARTICLE_COUNT = REDUCED ? 0 : (IS_MOBILE ? 55000 : 120000);   // GPU dither-dots
+
+const Engine = (function buildEngine(){
+  const stub = {
+    ok:false,
+    setSwarmFace(){}, assemble(){}, disperse(){}, burst(){},
+    reliefOn(){}, reliefOff(){}, setAside(){},
+    camCut(){}, setCamScene(){}, beat(){}, setTemp(){}, render(){}, resize(){}
+  };
+  const canvas = document.getElementById('gl');
+  if(!canvas) return stub;
+
+  /* Pre-flight WebGL on a throwaway canvas BEFORE constructing the renderer.
+     If the context can't be created we return the stub silently — this avoids
+     THREE.WebGLRenderer logging its own console.error on a doomed construct,
+     so the failure path stays truly error-free (the flat <img> carries it). */
+  let preGl=null;
+  try{
+    const t=document.createElement('canvas');
+    preGl = t.getContext('webgl2') || t.getContext('webgl') || t.getContext('experimental-webgl');
+  }catch(e){ preGl=null; }
+  if(!preGl) return stub;
+
+  let renderer;
+  try{
+    renderer = new THREE.WebGLRenderer({
+      canvas, antialias:false, alpha:true, premultipliedAlpha:false,
+      powerPreference:'high-performance', failIfMajorPerformanceCaveat:false
+    });
+  }catch(e){ return stub; }
+  if(!renderer || !renderer.getContext()) return stub;
+
+  /* DPR cap: the dither pass floors detail at ~1.5 device px anyway, so a high
+     DPR is wasted cost (bloom scales with pixel² ). Cap at 1.25 desktop / 1.0
+     mobile — holds the 1-bit look while keeping the composer affordable. */
+  const DPR = Math.min(window.devicePixelRatio || 1, IS_MOBILE ? 1.0 : 1.25);
+  renderer.setPixelRatio(DPR);
+  renderer.setSize(STAGE_W, STAGE_H, false);
+  renderer.setClearColor(0x000000, 0);
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+
+  const scene = new THREE.Scene();
+
+  /* --- real PerspectiveCamera ------------------------------------- */
+  const camera = new THREE.PerspectiveCamera(38, STAGE_W/STAGE_H, 0.1, 200);
+  const CAM_BASE_Z = 52;          // resting dolly distance
+  camera.position.set(0, 0, CAM_BASE_Z);
+  camera.lookAt(0,0,0);
+
+  /* world units: the visible plane at z=0 spans ~ this many units wide.
+     At fov 38 / z 52: halfH = 52*tan(19°) ≈ 17.9 → H≈35.8, W≈63.7. We map
+     the face into ~ that footprint so the swarm fills the frame. */
+  const planeH = 2 * CAM_BASE_Z * Math.tan(THREE.MathUtils.degToRad(38)/2);
+  const planeW = planeH * (STAGE_W/STAGE_H);
+
+  /* ============================================================
+     GPU PARTICLE DITHER-SWARM
+     Each particle carries TWO endpoints in attributes:
+       aCloud  — its dispersed 3D-cloud home (random shell)
+       aTarget — its formed position (sampled from the current face's
+                 luminance; dense where the dither is dense = lit areas)
+     The vertex shader lerps cloud→target by uProgress (eased on the JS
+     side), adds uTime idle drift, and sizes/colours each point. One draw
+     call. uProgress 1 = formed face, 0 = dispersed swarm.
+     ============================================================ */
+  const swarm = (function buildSwarm(){
+    if(PARTICLE_COUNT === 0) return null;
+    const N = PARTICLE_COUNT;
+    const geo = new THREE.BufferGeometry();
+
+    const aCloud   = new Float32Array(N*3);
+    const aTarget  = new Float32Array(N*3);
+    const aRnd      = new Float32Array(N);     // per-particle random (phase/size)
+    const aBright  = new Float32Array(N);      // target luminance 0..1 (alpha/size)
+    // positions buffer is what the shader writes; seed = cloud
+    const position = new Float32Array(N*3);
+
+    for(let i=0;i<N;i++){
+      // dispersed cloud: a fat ellipsoidal shell around origin
+      const a = Math.random()*Math.PI*2;
+      const u = Math.random()*2-1;
+      const r = 14 + Math.random()*30;
+      const sq = Math.sqrt(1-u*u);
+      const cx = Math.cos(a)*sq*r*1.25;
+      const cy = u*r*0.78;
+      const cz = Math.sin(a)*sq*r*1.0 - 6;
+      aCloud[i*3]=cx; aCloud[i*3+1]=cy; aCloud[i*3+2]=cz;
+      position[i*3]=cx; position[i*3+1]=cy; position[i*3+2]=cz;
+      // target seeded to cloud until a face is sampled
+      aTarget[i*3]=cx; aTarget[i*3+1]=cy; aTarget[i*3+2]=cz;
+      aRnd[i]=Math.random();
+      aBright[i]=0.6;
+    }
+    geo.setAttribute('position', new THREE.BufferAttribute(position,3));
+    geo.setAttribute('aCloud',   new THREE.BufferAttribute(aCloud,3));
+    geo.setAttribute('aTarget',  new THREE.BufferAttribute(aTarget,3));
+    geo.setAttribute('aRnd',     new THREE.BufferAttribute(aRnd,1));
+    geo.setAttribute('aBright',  new THREE.BufferAttribute(aBright,1));
+
+    const uni = {
+      uProgress: {value:0},
+      uTime:     {value:0},
+      uColor:    {value:tempColor},
+      uSize:     {value: 2.0 * DPR },
+      uGain:     {value: 0 },          // master opacity of the whole field
+      uCloudJit: {value: 1 }           // idle drift amount on the cloud side
+    };
+
+    const mat = new THREE.ShaderMaterial({
+      uniforms: uni,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      blending: THREE.AdditiveBlending,
+      vertexShader: `
+        uniform float uProgress;
+        uniform float uTime;
+        uniform float uSize;
+        uniform float uCloudJit;
+        attribute vec3 aCloud;
+        attribute vec3 aTarget;
+        attribute float aRnd;
+        attribute float aBright;
+        varying float vBright;
+        varying float vCore;
+        // smootherstep for a soft assemble settle
+        float ss(float e0,float e1,float x){ float t=clamp((x-e0)/(e1-e0),0.,1.); return t*t*t*(t*(t*6.-15.)+10.); }
+        void main(){
+          float pr = uProgress;
+          // per-particle stagger so the swarm "breathes" into place rather than
+          // snapping uniformly — brighter (core) dots arrive a touch sooner.
+          float stagger = mix(0.0, 0.34, aRnd);
+          float p = ss(stagger, stagger+0.66, pr);
+          vec3 pos = mix(aCloud, aTarget, p);
+          // idle drift: stronger on the cloud side (dispersed), fades as it forms.
+          float drift = (1.0 - p) * uCloudJit;
+          float t = uTime;
+          pos.x += sin(t*0.6 + aRnd*40.0) * 0.5 * drift;
+          pos.y += cos(t*0.5 + aRnd*55.0) * 0.5 * drift;
+          pos.z += sin(t*0.45 + aRnd*30.0) * 0.7 * drift;
+          // a little life even when formed — sub-pixel shimmer
+          pos.x += sin(t*1.6 + aRnd*90.0) * 0.018 * p;
+          pos.y += cos(t*1.7 + aRnd*70.0) * 0.018 * p;
+          vBright = aBright;
+          vCore = step(0.82, aBright);   // hottest dots get a white core
+          vec4 mv = modelViewMatrix * vec4(pos, 1.0);
+          // point size attenuates with distance; brighter dots slightly larger
+          float sz = uSize * (0.72 + aBright*0.85);
+          gl_PointSize = sz * (62.0 / -mv.z);
+          gl_Position = projectionMatrix * mv;
+        }`,
+      fragmentShader: `
+        precision mediump float;
+        uniform vec3 uColor;
+        uniform float uGain;
+        varying float vBright;
+        varying float vCore;
+        void main(){
+          // square-ish dot with a soft round falloff (reads as a dither dot)
+          vec2 d = gl_PointCoord - 0.5;
+          float r = dot(d,d);
+          if(r > 0.25) discard;
+          float soft = smoothstep(0.25, 0.02, r);
+          float a = soft * uGain * (0.45 + vBright*0.55);
+          vec3 col = uColor;
+          // hottest dots burn toward white at the core (matches V5's white core)
+          col = mix(col, vec3(1.0), vCore * soft * 0.7);
+          gl_FragColor = vec4(col, a);
+        }`
+    });
+
+    const points = new THREE.Points(geo, mat);
+    points.frustumCulled = false;
+    scene.add(points);
+
+    return {points, geo, mat, uni, N, aTarget, aBright,
+            posAttr: geo.getAttribute('position')};
+  })();
+
+  /* ============================================================
+     FACE TARGET SAMPLING — read a dithered face into target positions.
+     The dither images are 1-bit: LIT areas = dense white dots, dark
+     ground = sparse. We sample bright pixels (lum>120, matching V5) and
+     scatter the particle pool across them so DOT DENSITY follows the
+     image's dither density. Cached per (src, aside).
+     ============================================================ */
+  const sampler = document.createElement('canvas');
+  const sctx = sampler.getContext('2d', {willReadFrequently:true});
+  const faceImgs = {};
+  const targetCache = {};       // key -> Float32Array(N*3) + bright
+
+  function faceFootprint(aside){
+    // formed face occupies a centred region of the world plane. aside pushes
+    // it right + scales down (mirrors the DOM .face-aside backdrop).
+    const w = (aside ? 0.72 : 0.92) * planeW;
+    const h = w * (180/420);    // source aspect
+    const cx = aside ? planeW*0.30 : 0;
+    const cy = 0;
+    return {w,h,cx,cy};
+  }
+
+  function buildTargets(src, aside){
+    if(!swarm) return false;
+    const key = src + (aside?'_a':'_c');
+    const cached = targetCache[key];
+    if(cached){ applyTargets(cached); return true; }
+    const img = faceImgs[src];
+    if(!img || !img.complete || !img.naturalWidth) return false;
+
+    const SW = 200, SH = Math.max(1, Math.round(SW*(img.naturalHeight/img.naturalWidth)));
+    sampler.width=SW; sampler.height=SH;
+    sctx.clearRect(0,0,SW,SH);
+    sctx.drawImage(img,0,0,SW,SH);
+    let data;
+    try{ data = sctx.getImageData(0,0,SW,SH).data; }
+    catch(e){ return false; }    // tainted (file://) — caller falls back to <img>
+
+    // collect lit pixels (the figure's white dither dots)
+    const pts = [];
+    for(let sy=0; sy<SH; sy++){
+      for(let sx=0; sx<SW; sx++){
+        const i=(sy*SW+sx)*4;
+        const lum = data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114;
+        if(lum > 120){
+          pts.push((sx/SW), (sy/SH), lum/255);
+        }
+      }
+    }
+    if(pts.length < 64) return false;
+    const nPts = pts.length/3;
+    const fp = faceFootprint(aside);
+    const N = swarm.N;
+    const tgt = new Float32Array(N*3);
+    const brt = new Float32Array(N);
+    for(let i=0;i<N;i++){
+      // stride-map the pool over the point set so 120k covers any count
+      const pi = ((i*7919) % nPts)*3;
+      const nx = pts[pi], ny = pts[pi+1], b = pts[pi+2];
+      // map normalised image coords → world plane (y flipped: image down → world up)
+      const wx = fp.cx + (nx-0.5)*fp.w;
+      const wy = fp.cy + (0.5-ny)*fp.h;
+      // brighter dots sit very slightly forward → reads as relief under the lit
+      const wz = (b-0.4)*1.6;
+      tgt[i*3]=wx; tgt[i*3+1]=wy; tgt[i*3+2]=wz;
+      brt[i]=b;
+    }
+    const rec = {tgt, brt};
+    targetCache[key]=rec;
+    applyTargets(rec);
+    return true;
+  }
+
+  function applyTargets(rec){
+    const at = swarm.geo.getAttribute('aTarget');
+    const ab = swarm.geo.getAttribute('aBright');
+    at.array.set(rec.tgt); at.needsUpdate=true;
+    ab.array.set(rec.brt); ab.needsUpdate=true;
+  }
+
+  /* swarm motion state (eased toward targets on the JS side) */
+  let progress = 0, progressTarget = 0, gain = 0, gainTarget = 0;
+  let cloudJit = 1, cloudJitTarget = 1;
+
+  /* ============================================================
+     FACE RELIEF MESH — a subdivided plane displaced by the face's
+     luminance (height-map) in the vertex shader, lit by a real moving
+     directional light. Reads as an embossed/relief surface as the camera
+     moves. Sits where the formed swarm lands. Uses NearestFilter so the
+     1-bit dots stay crisp. Hidden until a usable (untainted) texture loads.
+     ============================================================ */
+  const relief = (function buildRelief(){
+    const SEG = REDUCED ? 1 : 200;
+    const geo = new THREE.PlaneGeometry(1, 1, SEG, Math.round(SEG*180/420));
+    const uni = {
+      uTex:      {value:null},
+      uTexel:    {value:new THREE.Vector2(1/420,1/180)},
+      uDisp:     {value: 1.5 },              // displacement height in world units
+      uLightDir: {value:new THREE.Vector3(0.4,0.5,0.85).normalize()},
+      uColor:    {value:tempColor},
+      uOpacity:  {value:0},
+      uHasTex:   {value:0}
+    };
+    const mat = new THREE.ShaderMaterial({
+      uniforms: uni,
+      transparent:true,
+      depthWrite:false,
+      depthTest:false,
+      blending: THREE.NormalBlending,
+      vertexShader: `
+        precision mediump float;
+        uniform sampler2D uTex;
+        uniform vec2 uTexel;
+        uniform float uDisp;
+        uniform float uHasTex;
+        varying vec2 vUv;
+        varying float vH;
+        varying vec3 vNormalW;
+        float lum(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
+        void main(){
+          vUv = uv;
+          float h = uHasTex>0.5 ? lum(texture2D(uTex, uv).rgb) : 0.0;
+          vH = h;
+          // compute a normal from the luminance gradient (finite differences)
+          float hx1 = lum(texture2D(uTex, uv + vec2(uTexel.x,0.0)).rgb);
+          float hx0 = lum(texture2D(uTex, uv - vec2(uTexel.x,0.0)).rgb);
+          float hy1 = lum(texture2D(uTex, uv + vec2(0.0,uTexel.y)).rgb);
+          float hy0 = lum(texture2D(uTex, uv - vec2(0.0,uTexel.y)).rgb);
+          vec3 n = normalize(vec3((hx0-hx1)*uDisp*4.0, (hy0-hy1)*uDisp*4.0, 1.0));
+          vNormalW = n;
+          vec3 pos = position;
+          pos.z += (h-0.35) * uDisp * uHasTex;     // displace along normal-ish (plane Z)
+          gl_Position = projectionMatrix * modelViewMatrix * vec4(pos,1.0);
+        }`,
+      fragmentShader: `
+        precision mediump float;
+        uniform sampler2D uTex;
+        uniform vec3 uLightDir;
+        uniform vec3 uColor;
+        uniform float uOpacity;
+        uniform float uHasTex;
+        varying vec2 vUv;
+        varying float vH;
+        varying vec3 vNormalW;
+        float lum(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
+        void main(){
+          if(uHasTex < 0.5){ discard; }
+          vec3 base = texture2D(uTex, vUv).rgb;
+          float h = lum(base);
+          vec3 N = normalize(vNormalW);
+          vec3 L = normalize(uLightDir);
+          float diff = max(dot(N,L), 0.0);
+          float rim = pow(1.0 - max(N.z,0.0), 2.0)*0.5;
+          float shade = h * (0.6 + 0.66*diff) + rim*h;
+          shade = clamp(shade, 0.0, 1.4);
+          // keep the dot structure, re-tinted slightly warm toward temp on lit slopes
+          vec3 col = mix(base, base*uColor*1.4, 0.18) * (shade / max(h,0.001));
+          // near-black ground stays black (figure-ground fusion) — alpha by luminance
+          float a = smoothstep(0.05, 0.24, h) * uOpacity;
+          gl_FragColor = vec4(col, a);
+        }`
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.frustumCulled = false;
+    mesh.visible = false;
+    scene.add(mesh);
+    return {mesh, mat, uni};
+  })();
+
+  // load textures lazily for the relief (NearestFilter, keeps dots crisp)
+  const reliefTex = {};        // src -> THREE.Texture | false(failed)
+  const texLoader = new THREE.TextureLoader();
+  texLoader.crossOrigin = 'anonymous';
+  function getReliefTex(src, cb){
+    if(reliefTex[src] === false) { cb(null); return; }
+    if(reliefTex[src]) { cb(reliefTex[src]); return; }
+    texLoader.load(src, (tex)=>{
+      tex.minFilter = THREE.NearestFilter;
+      tex.magFilter = THREE.NearestFilter;
+      tex.colorSpace = THREE.SRGBColorSpace;
+      tex.generateMipmaps = false;
+      reliefTex[src]=tex;
+      // texel size for the gradient taps
+      if(tex.image && tex.image.width){
+        relief.uni.uTexel.value.set(1/tex.image.width, 1/tex.image.height);
+      }
+      cb(tex);
+    }, undefined, ()=>{ reliefTex[src]=false; cb(null); });
+  }
+
+  let reliefOpacityTarget = 0;
+  let reliefAside = false, reliefSrc = null;
+
+  function placeRelief(aside){
+    const fp = faceFootprint(aside);
+    relief.mesh.scale.set(fp.w, fp.h, 1);
+    relief.mesh.position.set(fp.cx, fp.cy, 0);
+  }
+
+  /* ============================================================
+     EFFECT COMPOSER — bloom (subtle) → custom 1-bit DITHER pass.
+     The dither pass: ordered (Bayer 4x4) threshold of the scene luminance,
+     remapped to a carbon→orange ramp so the WHOLE frame reads 1-bit
+     carbon+orange. Adds RGB-split (uSplit, pulsed on beats) + film grain.
+     ============================================================ */
+  const composer = new EffectComposer(renderer);
+  composer.setPixelRatio(DPR);
+  composer.setSize(STAGE_W, STAGE_H);
+  const renderPass = new RenderPass(scene, camera);
+  composer.addPass(renderPass);
+
+  // subtle bloom on the hot dots / lit relief
+  const bloom = new UnrealBloomPass(new THREE.Vector2(STAGE_W, STAGE_H), 0.55, 0.7, 0.62);
+  composer.addPass(bloom);
+
+  const DitherShader = {
+    uniforms: {
+      tDiffuse: {value:null},
+      uTime:    {value:0},
+      uSplit:   {value:0},                       // RGB-split amount (beats)
+      uAmount:  {value: REDUCED ? 0.0 : 1.0},    // 0 = bypass dither (calm), 1 = full
+      uResolution: {value:new THREE.Vector2(STAGE_W, STAGE_H)},
+      uCarbon:  {value:new THREE.Color(0x0A0A0A)},
+      uInk:     {value:new THREE.Color(0xF3EFE8)},
+      uTemp:    {value:tempColor},
+      uGrain:   {value: REDUCED ? 0.0 : 0.05}
+    },
+    vertexShader: `
+      varying vec2 vUv;
+      void main(){ vUv = uv; gl_Position = projectionMatrix * modelViewMatrix * vec4(position,1.0); }`,
+    fragmentShader: `
+      precision highp float;
+      uniform sampler2D tDiffuse;
+      uniform float uTime, uSplit, uAmount, uGrain;
+      uniform vec2 uResolution;
+      uniform vec3 uCarbon, uInk, uTemp;
+      varying vec2 vUv;
+      float lum(vec3 c){ return dot(c, vec3(0.299,0.587,0.114)); }
+      float rand(vec2 co){ return fract(sin(dot(co, vec2(12.9898,78.233)))*43758.5453); }
+      // 4x4 Bayer ordered-dither matrix (0..15)/16
+      float bayer(vec2 p){
+        int x = int(mod(p.x,4.0));
+        int y = int(mod(p.y,4.0));
+        int i = x + y*4;
+        float m[16];
+        m[0]=0.0;  m[1]=8.0;  m[2]=2.0;  m[3]=10.0;
+        m[4]=12.0; m[5]=4.0;  m[6]=14.0; m[7]=6.0;
+        m[8]=3.0;  m[9]=11.0; m[10]=1.0; m[11]=9.0;
+        m[12]=15.0;m[13]=7.0; m[14]=13.0;m[15]=5.0;
+        float v=0.0;
+        for(int k=0;k<16;k++){ if(k==i) v=m[k]; }
+        return (v+0.5)/16.0;
+      }
+      void main(){
+        vec2 uv = vUv;
+        // RGB-split on beats: sample channels with a small horizontal offset
+        float sp = uSplit / uResolution.x;
+        vec3 col;
+        col.r = texture2D(tDiffuse, uv + vec2( sp, 0.0)).r;
+        col.g = texture2D(tDiffuse, uv).g;
+        col.b = texture2D(tDiffuse, uv - vec2( sp, 0.0)).b;
+
+        float l = lum(col);
+
+        // ordered dither: threshold luminance against the bayer matrix at
+        // device-pixel granularity (slightly chunked so the dots read).
+        vec2 px = floor(gl_FragCoord.xy / 1.5);
+        float thr = bayer(px);
+        float lit = step(thr, pow(l, 0.85));   // 1-bit decision
+
+        // map 1-bit result to carbon→(temp/ink) — orange for mid energy, ink
+        // for the hottest, carbon for the dark ground. Keeps it carbon+orange.
+        float hot = smoothstep(0.62, 0.95, l);
+        vec3 onCol = mix(uTemp, uInk, hot);
+        vec3 ditheredCol = mix(uCarbon, onCol, lit);
+
+        // blend dithered look with the raw scene by uAmount (1=full dither)
+        vec3 outc = mix(col, ditheredCol, uAmount);
+
+        // faint film grain
+        float g = (rand(uv*uResolution + uTime) - 0.5) * uGrain;
+        outc += g;
+
+        gl_FragColor = vec4(outc, 1.0);
+      }`
+  };
+  const ditherPass = new ShaderPass(DitherShader);
+  ditherPass.renderToScreen = true;
+  composer.addPass(ditherPass);
+
+  // beat: pulse the RGB-split (decays in render loop)
+  let splitAmt = 0;
+  function beat(strength){ if(REDUCED) return; splitAmt = Math.max(splitAmt, strength || 7); }
+
+  /* --- camera drift: Lissajous idle + per-scene push-in + cut kick ---- */
+  const camState = {
+    baseZ: CAM_BASE_Z, zTarget: CAM_BASE_Z, z: CAM_BASE_Z,
+    kx:0, ky:0, kdecay:0,
+    ax:1.1, ay:0.7,          // world-unit drift amplitude
+    rotAmp:0.018             // subtle orbit (radians)
+  };
+  function camCut(dir){
+    if(REDUCED) return;
+    const s = dir==='r2l' ? -1 : 1;
+    camState.kx = s*1.6; camState.ky = -0.7; camState.kdecay = 1;
+    camState.z = camState.zTarget + 4.5;     // pop back then push in
+  }
+  function setCamScene(kind){
+    // gentle per-scene dolly target: features sit a touch closer, title/ends wider
+    if(REDUCED){ camState.zTarget = CAM_BASE_Z; return; }
+    if(kind==='feature') camState.zTarget = CAM_BASE_Z - 4;
+    else if(kind==='title' || kind==='end') camState.zTarget = CAM_BASE_Z + 2;
+    else camState.zTarget = CAM_BASE_Z;
+  }
+
+  /* expose camera drift to the DOM (so the device-card shadow + rim parallax
+     against the real camera move) — writes the same vars V5's CSS reads. */
+  function pushCamVarsToDOM(x, y, rotY){
+    stage.style.setProperty('--camX', (x*7).toFixed(2)+'px');
+    stage.style.setProperty('--camY', (y*7).toFixed(2)+'px');
+    stage.style.setProperty('--camRX', (0).toFixed(2)+'deg');
+    stage.style.setProperty('--camRY', (rotY*60).toFixed(2)+'deg');
+  }
+
+  /* --- public API ------------------------------------------------- */
+  const api = { ok:true };
+
+  api.setTemp = function(){ /* tempColorTarget already set by outer setTemp */ };
+
+  api.setSwarmFace = function(src, aside){ buildTargets(src, aside); };
+
+  api.assemble = function(src, aside){
+    if(REDUCED || !swarm) return;
+    const ok = buildTargets(src, aside);
+    if(!ok){ gainTarget=0; return; }
+    progress = 0; progressTarget = 1;
+    gain = 0.0; gainTarget = 1;
+    cloudJit = 1; cloudJitTarget = 0.12;
+  };
+  api.disperse = function(){
+    if(REDUCED || !swarm) return;
+    progressTarget = 0;
+    gainTarget = 0;
+    cloudJitTarget = 1;
+  };
+  api.burst = function(){
+    if(REDUCED || !swarm) return;
+    // re-seed targets to a wide scatter so the field explodes outward
+    const at = swarm.geo.getAttribute('aTarget');
+    const ab = swarm.geo.getAttribute('aBright');
+    const arr = at.array, br = ab.array, N = swarm.N;
+    for(let i=0;i<N;i++){
+      const a=Math.random()*Math.PI*2, u=Math.random()*2-1, r=20+Math.random()*26;
+      const sq=Math.sqrt(1-u*u);
+      arr[i*3]=Math.cos(a)*sq*r*1.3; arr[i*3+1]=u*r*0.8; arr[i*3+2]=Math.sin(a)*sq*r-6;
+      br[i]=0.5+Math.random()*0.4;
+    }
+    at.needsUpdate=true; ab.needsUpdate=true;
+    progress=0; progressTarget=0; gain=0.9; gainTarget=0; cloudJit=1; cloudJitTarget=1;
+  };
+
+  api.reliefOn = function(src, aside){
+    if(REDUCED) return;
+    reliefSrc = src; reliefAside = aside;
+    placeRelief(aside);
+    getReliefTex(src, (tex)=>{
+      if(!tex){ relief.uni.uHasTex.value = 0; relief.mesh.visible=false; return; }
+      relief.uni.uTex.value = tex;
+      relief.uni.uHasTex.value = 1;
+      relief.mesh.visible = true;
+      reliefOpacityTarget = 1;
+    });
+  };
+  api.reliefOff = function(){ reliefOpacityTarget = 0; };
+  api.setAside = function(aside){ if(reliefSrc){ reliefAside=aside; placeRelief(aside); } };
+
+  api.camCut = camCut;
+  api.setCamScene = setCamScene;
+  api.beat = beat;
+
+  api.resize = function(){ /* fixed 1280x720 internal res — nothing to do */ };
+
+  let _t = 0;
+  api.render = function(dt, elapsedMs){
+    _t += dt;
+    const T = elapsedMs/1000;
+
+    // ease temp colour (shared THREE.Color objects update everywhere)
+    tempColor.lerp(tempColorTarget, 0.10);
+
+    // --- camera Lissajous idle + dolly + cut kick ---
+    let cx=0, cy=0, ry=0;
+    if(!REDUCED){
+      cx = Math.sin(T*0.37)*camState.ax + Math.sin(T*0.91)*camState.ax*0.18;
+      cy = Math.cos(T*0.29)*camState.ay + Math.sin(T*0.67)*camState.ay*0.16;
+      ry = Math.sin(T*0.23)*camState.rotAmp;
+      if(camState.kdecay>0.001){
+        cx += camState.kx*camState.kdecay;
+        cy += camState.ky*camState.kdecay;
+        camState.kdecay += (0 - camState.kdecay)*0.05*dt;
+      }
+      // dolly easing (push-in after a cut pop)
+      camState.z += (camState.zTarget - camState.z)*0.04*dt;
+    }
+    camera.position.x = cx;
+    camera.position.y = cy;
+    camera.position.z = camState.z;
+    camera.rotation.y = ry;
+    camera.rotation.x = -cy*0.012;
+    camera.lookAt(cx*0.3, cy*0.3, 0);
+    pushCamVarsToDOM(cx, cy, ry);
+
+    // --- swarm easing ---
+    if(swarm){
+      progress += (progressTarget - progress)*0.055*dt;
+      gain     += (gainTarget - gain)*0.06*dt;
+      cloudJit += (cloudJitTarget - cloudJit)*0.05*dt;
+      swarm.uni.uProgress.value = progress;
+      swarm.uni.uTime.value = T;
+      swarm.uni.uGain.value = gain;
+      swarm.uni.uCloudJit.value = cloudJit;
+      swarm.uni.uColor.value = tempColor;
+    }
+
+    // --- relief easing + moving key light ---
+    relief.uni.uOpacity.value += (reliefOpacityTarget - relief.uni.uOpacity.value)*0.07*dt;
+    if(relief.uni.uOpacity.value < 0.01) relief.mesh.visible=false;
+    else if(relief.uni.uHasTex.value>0.5) relief.mesh.visible=true;
+    if(!REDUCED){
+      relief.uni.uLightDir.value.set(
+        Math.sin(T*0.33)*0.6, Math.cos(T*0.27)*0.5 + 0.15, 0.85
+      ).normalize();
+    }
+    relief.uni.uColor.value = tempColor;
+
+    // --- composer uniforms ---
+    ditherPass.uniforms.uTime.value = T;
+    ditherPass.uniforms.uTemp.value = tempColor;
+    splitAmt += (0 - splitAmt)*0.12*dt;
+    ditherPass.uniforms.uSplit.value = splitAmt;
+    bloom.strength = 0.5 + Math.min(0.35, splitAmt*0.03);
+
+    composer.render();
+  };
+
+  // store for preload bridge
+  api._faceImgs = faceImgs;
+
+  return api;
+})();
+
+/* ============================================================
+   DOM-LEVEL SPECTER TRANSITIONS + TIMELINE
+   The scene timeline is PRESERVED from V5 (same beats, same timings,
+   same byte-identical copy reveals). The swarm/relief/camera calls now
+   drive the Three.js Engine instead of canvas2d/raw-webgl/CSS-2.5D.
+   ============================================================ */
+
+/* ---- element refs ---- */
+const scenes   = Array.from(document.querySelectorAll('.scene'));
+const flash    = document.getElementById('flash');
+const swipe    = document.getElementById('swipe');
+const ticker   = document.getElementById('ticker');
+const hudText  = document.getElementById('hudPhaseText');
+const figNo    = document.getElementById('figNo');
+const figCoord = document.getElementById('figCoord');
+
+function sceneEl(i){ return scenes.find(s => +s.dataset.scene === i); }
+function setFig(n){ if(figNo) figNo.textContent = String(n).padStart(2,'0'); }
+function showOnly(i){
+  scenes.forEach(s=>{ s.classList.toggle('live', (+s.dataset.scene === i)); });
+}
+function play(el, cls){
+  if(!el) return;
+  el.classList.remove(cls);
+  void el.offsetWidth;
+  el.classList.add(cls);
+}
+
+/* orange/temp flash frame + scanline swipe + RGB glitch (hard-beat punctuation) */
+function doFlash(dur){
+  if(REDUCED) return;
+  flash.style.animation='none'; void flash.offsetWidth;
+  flash.style.animation=`flashPop ${dur||0.32}s ease-out`;
+}
+function doSwipe(dur){
+  if(REDUCED) return;
+  swipe.style.animation='none'; void swipe.offsetWidth;
+  swipe.style.animation=`swipePop ${dur||0.42}s ease-in-out`;
+}
+function doGlitch(el){
+  if(REDUCED || !el) return;
+  play(el,'anim-rgb');
+  Engine.beat(8);            // GPU RGB-split on the same beat
+}
+function punchScene(i){
+  if(REDUCED) return;
+  const sc=sceneEl(i); if(!sc) return;
+  sc.style.animation='none'; void sc.offsetWidth;
+  sc.style.animation='punchZoom .42s cubic-bezier(.2,1,.3,1)';
+}
+
+/* ---- Specter transition drivers (DOM, kept identical to V5) ---- */
+const blk     = document.getElementById('blk');
+const blkEdge = document.getElementById('blkEdge');
+const ditherW = document.getElementById('ditherwipe');
+const glitchB = document.getElementById('glitchblocks');
+const schematic = document.getElementById('schematic');
+
+function blockWipe(dir, dur){
+  if(REDUCED) return;
+  Engine.camCut(dir);
+  dur = dur || 0.40;
+  const a   = dir==='r2l' ? 'blkR2L'      : 'blkL2R';
+  const ae  = dir==='r2l' ? 'blkEdgeR2L'  : 'blkEdgeL2R';
+  blk.style.transformOrigin = 'center';
+  blk.style.animation='none'; blkEdge.style.animation='none';
+  void blk.offsetWidth;
+  blk.style.animation     = `${a} ${dur}s cubic-bezier(.7,0,.2,1)`;
+  blkEdge.style.animation = `${ae} ${dur}s cubic-bezier(.7,0,.2,1)`;
+}
+function blockExpand(dur){
+  if(REDUCED) return;
+  Engine.camCut('l2r');
+  dur = dur || 0.42;
+  blk.style.transformOrigin = 'center';
+  blk.style.animation='none'; blkEdge.style.animation='none';
+  void blk.offsetWidth;
+  blk.style.animation = `blkExpand ${dur}s cubic-bezier(.7,0,.2,1)`;
+}
+function ditherWipe(dur){
+  if(REDUCED) return;
+  ditherW.style.animation='none'; void ditherW.offsetWidth;
+  ditherW.style.animation=`ditherIn ${dur||0.5}s steps(8) forwards`;
+}
+function glitchBlocks(dur){
+  if(REDUCED) return;
+  glitchB.style.animation='none'; void glitchB.offsetWidth;
+  glitchB.style.animation=`blockGlitch ${dur||0.6}s steps(1) forwards`;
+  Engine.beat(9);
+}
+
+function schematicReveal(){
+  if(!schematic) return;
+  if(REDUCED){ schematic.classList.add('on'); return; }
+  ['schLoop','schSpokes'].forEach((id,k)=>{
+    const p=document.getElementById(id); if(!p) return;
+    const len=p.getTotalLength();
+    p.style.strokeDasharray=len; p.style.strokeDashoffset=len;
+    p.classList.remove('draw'); void p.getBoundingClientRect();
+    p.style.animationDelay=(k*0.18)+'s';
+    p.classList.add('draw');
+  });
+  ['schN0','schN1','schN2','schN3','schN4','schHub'].forEach((id,k)=>{
+    const n=document.getElementById(id); if(!n) return;
+    n.classList.remove('lit'); void n.getBoundingClientRect();
+    setTimeout(()=>n.classList.add('lit'), 320+k*90);
+  });
+  ['schL0','schL1','schL2','schL3','schL4'].forEach((id,k)=>{
+    const t=document.getElementById(id); if(!t) return;
+    t.classList.remove('lit'); setTimeout(()=>t.classList.add('lit'), 520+k*90);
+  });
+  schematic.classList.add('on');
+}
+function schematicHide(){ if(schematic) schematic.classList.remove('on'); }
+
+/* relief on/off bridges to the Engine. The flat <img> opacity is ALWAYS set
+   by the timeline step (so it shows under reduced-motion AND as the WebGL-fail
+   fallback). When the Engine is live it owns the face volume, so we add
+   .relief-on to fade the flat <img> out and let the GL relief read clean. */
+function reliefOn(src, aside, imgEl){
+  if(!Engine.ok || REDUCED){ return; }   // flat <img> (set by the step) carries it
+  Engine.reliefOn(src, aside);
+  if(imgEl) imgEl.classList.add('relief-on');
+}
+function reliefOff(imgEl){
+  if(imgEl) imgEl.classList.remove('relief-on');
+  if(!Engine.ok || REDUCED) return;
+  Engine.reliefOff();
+}
+
+/* swarm bridges */
+function swarmAssembleFace(src, aside){ if(Engine.ok) Engine.assemble(src, aside); }
+function swarmDisperse(){ if(Engine.ok) Engine.disperse(); }
+function swarmBurst(){ if(Engine.ok) Engine.burst(); }
+
+/* ---- type-on engine (PRESERVED) ---- */
+const typers = [];
+function typeInto(node, text, cps, onDone){
+  if(!node) return;
+  if(REDUCED){ node.textContent=text; if(onDone) onDone(); return; }
+  node.textContent='';
+  let i=0;
+  const per = 1000/(cps||26);
+  const tick = ()=>{
+    node.textContent = text.slice(0, ++i);
+    if(i < text.length){
+      const t=setTimeout(tick, per*(0.7+Math.random()*0.7));
+      typers.push(t);
+    } else if(onDone){ onDone(); }
+  };
+  const t0=setTimeout(tick, per);
+  typers.push(t0);
+}
+function clearTypers(){ typers.forEach(clearTimeout); typers.length=0; }
+
+/* ---- number roll (PRESERVED) ---- */
+let counterRAF=null;
+function rollCounter(node, to, dur){
+  if(!node) return;
+  if(counterRAF) cancelAnimationFrame(counterRAF);
+  if(REDUCED){ node.textContent=to; return; }
+  const t0=performance.now();
+  const step=(t)=>{
+    const k=Math.min(1,(t-t0)/dur);
+    const e=1-Math.pow(1-k,3);
+    node.textContent = Math.round(to*e);
+    if(k<1) counterRAF=requestAnimationFrame(step);
+  };
+  counterRAF=requestAnimationFrame(step);
+}
+
+/* ---- spark line draw (PRESERVED) ---- */
+function drawSpark(){
+  const path=document.getElementById('sparkPath');
+  if(!path) return;
+  const len=path.getTotalLength();
+  path.style.transition='none';
+  path.style.strokeDasharray=len;
+  path.style.strokeDashoffset=len;
+  void path.getBoundingClientRect();
+  if(REDUCED){ path.style.strokeDashoffset=0; return; }
+  path.style.transition='stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)';
+  path.style.strokeDashoffset=0;
+}
+
+/* ---- demo reset helpers (PRESERVED) ---- */
+function resetDemo(sc){
+  if(!sc) return;
+  sc.querySelectorAll('.app').forEach(c=>{ c.classList.remove('anim-cardin','anim-rgb'); c.style.opacity='0'; });
+  sc.querySelectorAll('.think').forEach(t=>{ t.style.opacity='0'; });
+  sc.querySelectorAll('.out').forEach(o=>{
+    const keep = o.hasAttribute('data-drill') || o.hasAttribute('data-word');
+    o.style.opacity = keep ? '1' : '0';
+  });
+  sc.querySelectorAll('[data-tag]').forEach(t=>{ t.style.opacity='0'; t.classList.remove('anim-fadeup'); });
+  sc.querySelectorAll('[data-type]').forEach(n=>{ n.textContent=''; });
+  sc.querySelectorAll('.caret').forEach(c=>{ c.classList.remove('off','solid'); });
+  sc.querySelectorAll('.field').forEach(f=>{ f.classList.remove('active'); });
+  sc.querySelectorAll('.btn').forEach(b=>{ b.classList.remove('run','pressed'); });
+  const bar=sc.querySelector('#sharpBar'); if(bar) bar.style.width='0';
+  ['sharpNow','progCounter','ownNum','drillNum'].forEach(id=>{ const n=sc.querySelector('#'+id); if(n) n.textContent='0'; });
+}
+function showEl(el, cls){ if(el){ el.style.opacity='1'; if(cls) play(el,cls); } }
+function pressBtn(btn){ if(!btn) return; play(btn,'pressed'); if(!REDUCED){ btn.classList.remove('run'); void btn.offsetWidth; btn.classList.add('run'); Engine.beat(4); } }
+
+/* ============================================================
+   TIMELINE — PRESERVED from V5. ~36.9s total, then loops.
+   ============================================================ */
+const TOTAL = 36900;
+let steps = [];
+const at = (t, fn) => steps.push({t, fn});
+
+function buildTimeline(){
+  steps = [];
+  clearTypers();
+
+  /* ---------- SCENE 0 : SWARM ASSEMBLE + kicker (0 – 3.2s) ---------- */
+  at(0, ()=>{
+    setTemp('train'); hudText.textContent='BOOT'; setFig(0);
+    showOnly(0); schematicHide(); Engine.setCamScene('boot');
+    const f=document.getElementById('face0'); f.style.opacity='0';
+    const wash=document.getElementById('wash0'); if(wash) wash.style.opacity='0';
+    document.getElementById('kick0').style.opacity='0';
+    blockWipe('l2r', .46);
+    swarmAssembleFace('assets/face-train.webp', false);
+  });
+  at(900,  ()=>{ const f=document.getElementById('face0'); f.style.transition='opacity .9s'; f.style.opacity='1'; reliefOn('assets/face-train.webp', false, f); });
+  at(1150, ()=>{ const w=document.getElementById('wash0'); if(w) w.style.opacity='.5'; });
+  at(1250, ()=> play(document.getElementById('kick0'),'anim-flicker'));
+  at(2700, ()=> swarmDisperse());
+  at(2820, ()=>{ blockWipe('r2l', .42); const f=document.getElementById('face0'); f.style.transition='opacity .3s'; f.style.opacity='0'; reliefOff(f); });
+
+  /* ---------- SCENE 1 : TITLE SLAM (3.2 – 6.0s) ---------- */
+  at(3200, ()=>{
+    setTemp('orange'); hudText.textContent='TITLE'; setFig(1);
+    showOnly(1); ditherWipe(.5); swarmBurst(); Engine.setCamScene('title');
+    const f=document.getElementById('face1');
+    f.style.opacity='0'; f.style.transition='opacity .8s';
+    const t=document.getElementById('title1'), s=document.getElementById('sub1'), k=document.getElementById('kick1');
+    t.style.opacity='0'; s.style.opacity='0'; k.style.opacity='0';
+  });
+  at(3300, ()=>{ const f=document.getElementById('face1'); f.style.opacity='.26'; f.style.filter='contrast(1.1) brightness(.7)'; });
+  at(3340, ()=>{ schematic.classList.remove('faint'); schematicReveal(); });
+  at(3320, ()=> play(document.getElementById('kick1'),'anim-flicker'));
+  at(3560, ()=>{ play(document.getElementById('title1'),'anim-slam'); glitchBlocks(.5); doGlitch(document.getElementById('title1')); doFlash(.26); });
+  at(4060, ()=> play(document.getElementById('sub1'),'anim-fadeup'));
+  at(5640, ()=>{ schematicHide(); blockWipe('l2r', .42); });
+
+  /* ============================================================
+     THE REAL APP, IN MOTION (6.0 – 31.0s)  ~5.0s each. (PRESERVED)
+     ============================================================ */
+  const demos = [
+    {scene:2, temp:'learn',    phase:'LEARN',    src:'assets/face-learn.webp', kind:'type',
+     fig:2, dir:'l2r', type:'CRM',                          cps:6 },
+    {scene:3, temp:'spar',     phase:'SPAR',     src:'assets/face-spar.webp',  kind:'spar',
+     fig:3, dir:'r2l', type:'remote work beats the office', cps:34},
+    {scene:4, temp:'words',    phase:'WORDS',    src:'assets/face-words.webp', kind:'words',
+     fig:4, dir:'l2r'},
+    {scene:5, temp:'train',    phase:'TRAIN',    src:'assets/face-train.webp', kind:'type',
+     fig:5, dir:'r2l', type:'endowment effect',             cps:22},
+    {scene:6, temp:'progress', phase:'PROGRESS', src:'assets/face-progress.webp', kind:'progress',
+     fig:6, dir:'l2r'}
+  ];
+
+  let cur = 6000;
+  const LEN = 5000;
+  demos.forEach((d, di)=>{
+    const s0 = cur;
+    const sc = ()=> sceneEl(d.scene);
+    const q  = (sel)=> sc().querySelector(sel);
+
+    at(s0, ()=>{
+      setTemp(d.temp); hudText.textContent=d.phase; setFig(d.fig);
+      showOnly(d.scene); schematicHide(); Engine.setCamScene('feature');
+      const el=sc(); el.classList.add('face-aside');
+      const f=el.querySelector('.face'); if(f){ f.style.opacity='0'; f.style.transition='opacity .8s'; }
+      if(di % 2 === 1){ blockExpand(.42); } else { blockWipe(d.dir, .40); }
+      doFlash(.18);
+      resetDemo(el);
+      swarmAssembleFace(d.src, true);
+    });
+    at(s0+760, ()=>{ const f=q('.face'); if(f) f.style.opacity='.46'; reliefOn(d.src, true, f); });
+    at(s0+900, ()=>{ schematic.classList.add('faint'); schematicReveal(); });
+    at(s0+240, ()=>{ const c=q('.app'); if(c){ c.style.opacity='1'; play(c,'anim-cardin'); } });
+
+    if(d.kind==='words'){
+      at(s0+760,  ()=>{ doGlitch(q('.word .up')); });
+      at(s0+1900, ()=>{ const c=q('[data-got]'); pressBtn(c); showEl(q('.think'),'anim-fadein'); });
+      at(s0+3100, ()=>{ q('.think').style.opacity='0'; });
+      at(s0+3260, ()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); doGlitch(tg); punchScene(d.scene); });
+
+    } else if(d.kind==='progress'){
+      at(s0+780, ()=>{
+        drawSpark();
+        const bar=q('#sharpBar'); if(bar) bar.style.width = '78%';
+        rollCounter(q('#sharpNow'), 78, 1100);
+      });
+      at(s0+1700,()=>{ rollCounter(q('#progCounter'), 30, 1100); rollCounter(q('#ownNum'), 214, 1200); rollCounter(q('#drillNum'), 168, 1300); });
+      at(s0+3150,()=>{ const cell=q('.stat-cell'); if(cell){ play(cell,'anim-statpop'); } glitchBlocks(.5); doGlitch(q('#progCounter')); doFlash(.2); punchScene(d.scene); });
+
+    } else if(d.kind==='spar'){
+      const tNode=()=> q('[data-type]'); const caret=()=> q('.caret'); const field=()=> q('.field');
+      at(s0+620, ()=>{ if(field()) field().classList.add('active'); if(caret()) caret().classList.add('solid'); typeInto(tNode(), d.type, d.cps); });
+      const typeMs = d.type.length*(1000/d.cps);
+      const ringAt = s0 + 700 + Math.min(1500, typeMs);
+      at(ringAt, ()=>{ if(caret()) caret().classList.add('off'); if(field()) field().classList.remove('active'); pressBtn(q('.btn')); });
+      at(ringAt+420, ()=>{ showEl(q('.think'),'anim-fadein'); });
+      at(ringAt+1500,()=>{ q('.think').style.opacity='0'; showEl(q('[data-spar-reply]'),'anim-fadein'); doGlitch(q('.msg.ai')); });
+      at(ringAt+2250,()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
+
+    } else {
+      const tNode=()=> q('[data-type]'); const caret=()=> q('.caret'); const field=()=> q('.field');
+      at(s0+640, ()=>{ if(field()) field().classList.add('active'); if(caret()) caret().classList.add('solid'); typeInto(tNode(), d.type, d.cps); });
+      const typeMs = d.type ? (d.type.length*(1000/d.cps)) : 600;
+      const runAt = s0 + 700 + Math.min(1500, typeMs);
+      at(runAt, ()=>{ if(caret()) caret().classList.add('off'); if(field()) field().classList.remove('active'); pressBtn(q('.btn')); });
+      at(runAt+340, ()=>{ showEl(q('.think'),'anim-fadein'); });
+      at(runAt+1300,()=>{ q('.think').style.opacity='0'; const o=q('.out:not([data-drill])'); showEl(o,'anim-fadein'); doGlitch(o.querySelector('.fb,.msg')); });
+      at(runAt+2050,()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
+    }
+
+    at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; reliefOff(f); } schematicHide(); swarmDisperse(); });
+
+    cur += LEN;
+  });
+
+  /* ---------- VALUE STACK (31.1 – 34.4s) ---------- */
+  const VSTART = 31100;
+  at(VSTART, ()=>{
+    setTemp('orange'); hudText.textContent='WHY'; setFig(7);
+    showOnly(7); blockWipe('r2l', .42); swarmBurst(); Engine.setCamScene('stack');
+    schematic.classList.remove('faint'); schematicReveal();
+    const items=document.querySelectorAll('#vstack .vstack-item');
+    items.forEach(it=>{ it.style.opacity='0'; it.classList.remove('anim-punch'); });
+    const vt=document.getElementById('vtime'); vt.style.opacity='0'; vt.style.animation='none';
+  });
+  const vitems = ['RECALL','REASONING','ARTICULATION','CROSS-DOMAIN','QUANT'];
+  vitems.forEach((_,i)=>{
+    at(VSTART + 160 + i*420, ()=>{
+      const el = document.querySelectorAll('#vstack .vstack-item')[i];
+      play(el,'anim-punch');
+      if(!REDUCED){ blkEdge.style.animation='none'; void blkEdge.offsetWidth;
+        blkEdge.style.animation=`${i%2? 'blkEdgeR2L':'blkEdgeL2R'} .26s linear`; }
+    });
+  });
+  at(VSTART + 160 + vitems.length*420 + 230, ()=>{
+    const vt=document.getElementById('vtime');
+    glitchBlocks(.5); doFlash(.26); doGlitch(vt);
+    vt.style.animation='none'; void vt.offsetWidth;
+    vt.style.animation='slamIn .55s cubic-bezier(.2,1.3,.3,1) forwards';
+  });
+
+  /* ---------- END CARD (34.45 – 36.9s) : swarm assemble face ---------- */
+  const ESTART = 34450;
+  at(ESTART, ()=>{
+    setTemp('orange'); hudText.textContent='SHARPEN'; setFig(9);
+    showOnly(8); ditherWipe(.5); doFlash(.3); Engine.setCamScene('end');
+    schematic.classList.remove('faint'); schematicReveal();
+    const f=document.getElementById('face8');
+    f.style.opacity='0'; f.style.transition='opacity .8s';
+    swarmAssembleFace('assets/face-spar.webp', false);
+    ['kick8','endmark','endline','endurl'].forEach(id=>{ document.getElementById(id).style.opacity='0'; });
+  });
+  at(ESTART+600,  ()=>{ const f=document.getElementById('face8'); f.style.opacity='.30'; f.style.filter='contrast(1.1) brightness(.66)'; reliefOn('assets/face-spar.webp', false, f); });
+  at(ESTART+160,  ()=> play(document.getElementById('kick8'),'anim-flicker'));
+  at(ESTART+420,  ()=>{ play(document.getElementById('endmark'),'anim-slam'); glitchBlocks(.46); doGlitch(document.getElementById('endmark')); });
+  at(ESTART+900,  ()=> play(document.getElementById('endline'),'anim-fadeup'));
+  at(ESTART+1250, ()=>{
+    const u=document.getElementById('endurl');
+    play(u,'anim-fadeup');
+    if(!REDUCED){ setTimeout(()=>{ u.style.animation='urlBreathe 2.2s ease-in-out infinite'; },520); }
+  });
+
+  steps.sort((a,b)=>a.t-b.t);
+}
+
+/* ---- rAF clock (drives the timeline AND the Three.js Engine) ---- */
+let startTime = null;
+let idx = 0;
+let rafId = null;
+let lastTs = 0;
+let coordTick = 0;
+
+function loop(ts){
+  if(startTime===null){ startTime = ts; lastTs = ts; }
+  const elapsed = ts - startTime;
+  const dt = Math.min(40, ts-lastTs||16)/16.7;
+  lastTs = ts;
+
+  ticker.style.width = Math.min(100, (elapsed/TOTAL)*100) + '%';
+
+  if(figCoord && ts-coordTick > 160){
+    coordTick = ts;
+    const x = Math.round((elapsed/TOTAL)*1000)%1000;
+    const y = (Math.round(140 + Math.sin(elapsed/420)*120)+1000)%1000;
+    figCoord.textContent = 'X·'+String(x).padStart(3,'0')+' Y·'+String(y).padStart(3,'0');
+  }
+
+  while(idx < steps.length && elapsed >= steps[idx].t){
+    try{ steps[idx].fn(); }catch(e){ /* never crash the loop */ }
+    idx++;
+  }
+
+  // drive the Three.js engine (camera drift + swarm + relief + composer)
+  if(Engine.ok){ try{ Engine.render(dt, elapsed); }catch(e){ /* GL must never crash the loop */ } }
+
+  if(elapsed >= TOTAL){ restart(); return; }
+  rafId = requestAnimationFrame(loop);
+}
+
+function restart(){
+  if(rafId) cancelAnimationFrame(rafId);
+  if(counterRAF) cancelAnimationFrame(counterRAF);
+  clearTypers();
+  startTime = null;
+  idx = 0;
+  ticker.style.width = '0%';
+  scenes.forEach(s=>{ s.classList.remove('face-aside'); s.style.animation=''; });
+  schematicHide(); schematic.classList.remove('faint');
+  [blk,blkEdge,ditherW,glitchB].forEach(el=>{ if(el) el.style.animation='none'; });
+  if(Engine.ok){ Engine.disperse(); Engine.reliefOff(); }
+  document.querySelectorAll('.face.relief-on').forEach(f=> f.classList.remove('relief-on'));
+  buildTimeline();
+  rafId = requestAnimationFrame(loop);
+}
+
+document.getElementById('replayBtn').addEventListener('click', restart);
+
+/* ---- preload faces (for swarm sampling), THEN boot ---- */
+function preloadFaces(done){
+  let left = FACE_SRCS.length;
+  if(!left){ done(); return; }
+  let settled=false;
+  const finish=()=>{ if(!settled){ settled=true; done(); } };
+  FACE_SRCS.forEach(src=>{
+    const img=new Image();
+    try{ img.crossOrigin='anonymous'; }catch(e){}
+    img.onload = img.onerror = ()=>{ if(Engine.ok && Engine._faceImgs) Engine._faceImgs[src]=img; if(--left<=0) finish(); };
+    img.src = src;
+  });
+  setTimeout(finish, 1500);
+}
+
+function boot(){ buildTimeline(); rafId = requestAnimationFrame(loop); }
+
+let started=false;
+const go=()=>{ if(!started){ started=true; preloadFaces(boot); } };
+if(document.fonts && document.fonts.ready){
+  document.fonts.ready.then(go);
+  setTimeout(go, 350);
+}else{
+  go();
+}
+</script>
+</body>
+</html>
