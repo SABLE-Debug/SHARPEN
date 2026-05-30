@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily Sharpen — promo V3</title>
+<title>Daily Sharpen — promo V4</title>
 <link rel="icon" href="data:,">
 
 <!-- The only permitted external resource: Cormorant Garamond display serif. -->
@@ -118,11 +118,33 @@ html,body{
   box-shadow:0 0 8px var(--temp);animation:hudPulse 1.1s steps(2) infinite;transition:background .25s,box-shadow .25s}
 @keyframes hudPulse{0%,100%{opacity:1}50%{opacity:.25}}
 
+/* spec-sheet chrome — FIG. index label (bottom-left) + coordinate readout (bottom-right).
+   Pure structural/index annotation in the Specter instrument-panel register — no marketing copy. */
+.fig{position:absolute;z-index:56;font-family:var(--pixel);font-size:10px;
+  letter-spacing:.16em;color:var(--mid);text-transform:uppercase;opacity:.62}
+.fig.bl2{left:70px;bottom:46px}
+.fig.br2{right:70px;bottom:46px;text-align:right;color:var(--temp);opacity:.5;transition:color .25s}
+.fig .acc{color:var(--temp);transition:color .25s}
+
+/* ruler-tick strips along the top + bottom edges — instrument-panel detail.
+   Repeating hairline ticks drawn with a CSS gradient (no image). */
+.ruler{position:absolute;left:70px;right:70px;height:7px;z-index:55;pointer-events:none;opacity:.4;
+  background-image:repeating-linear-gradient(90deg,
+    color-mix(in srgb,var(--temp) 55%,transparent) 0 1px, transparent 1px 22px);
+  transition:background-image .25s}
+.ruler.top{top:54px}
+.ruler.bot{bottom:54px;transform:scaleY(-1)}
+.ruler::after{content:"";position:absolute;left:0;right:0;top:50%;height:1px;
+  background:rgba(255,255,255,.06)}
+
 /* progress ticker along the bottom edge */
 .ticker{position:absolute;left:70px;right:70px;bottom:30px;height:2px;z-index:56;
   background:rgba(255,255,255,.08)}
 .ticker-fill{position:absolute;left:0;top:0;height:100%;width:0;
   background:var(--temp);box-shadow:0 0 10px var(--temp);transition:background .25s}
+/* the ticker's leading head + a coordinate caret that rides it (spec-sheet feel) */
+.ticker-fill::after{content:"";position:absolute;right:-1px;top:-3px;width:2px;height:8px;
+  background:var(--temp);box-shadow:0 0 9px var(--temp)}
 
 /* ---- scenes -------------------------------------------------------- */
 .scene{position:absolute;inset:0;z-index:10;opacity:0;visibility:hidden}
@@ -478,6 +500,81 @@ html,body{
   background:linear-gradient(90deg,transparent 0%,var(--temp) 48%,var(--temp) 52%,transparent 100%);
   background-size:300% 100%;background-position:120% 0;mix-blend-mode:screen}
 
+/* ============================================================
+   SPECTER TRANSITION SYSTEM — the V4 motion grammar.
+   Four hard, mechanical, GPU-only transition primitives that wrap
+   Sharpen's scenes. Solid block-wipes are the signature; dither +
+   checkerboard handle the big hits. All transform/opacity/clip only.
+   ============================================================ */
+
+/* 1 · ORANGE BLOCK-WIPE — the #1 Specter tell. A solid SOLID rectangle
+   that slides fully across the frame then snaps away, revealing the next
+   scene under it. We run a panel pair: a SOLID fill block + a thin SOLID
+   leading edge, swept via transform. Direction set by a modifier class. */
+.blockwipe{position:absolute;inset:0;z-index:52;pointer-events:none;overflow:hidden}
+.blockwipe .blk{position:absolute;inset:0;background:var(--temp);
+  transform:translateX(-101%);transition:background .15s}
+.blockwipe .edge{position:absolute;top:0;bottom:0;width:6px;background:#0A0A0A;
+  box-shadow:0 0 0 2px var(--temp);transform:translateX(-40px)}
+/* directional sweeps — solid block crosses then clears (mechanical, no fade) */
+@keyframes blkL2R{0%{transform:translateX(-101%)}46%{transform:translateX(0)}54%{transform:translateX(0)}100%{transform:translateX(101%)}}
+@keyframes blkR2L{0%{transform:translateX(101%)}46%{transform:translateX(0)}54%{transform:translateX(0)}100%{transform:translateX(-101%)}}
+@keyframes blkEdgeL2R{0%{transform:translateX(-40px)}100%{transform:translateX(1320px)}}
+@keyframes blkEdgeR2L{0%{transform:translateX(1320px)}100%{transform:translateX(-40px)}}
+/* vertical bar variant — a tall block expands from a seam then retracts */
+@keyframes blkExpand{0%{transform:scaleX(0)}40%{transform:scaleX(1)}60%{transform:scaleX(1)}100%{transform:scaleX(0)}}
+
+/* 2 · DITHER-WIPE — 1-bit stipple dissolve. A full-frame field of orange
+   dither dots fades up hard then breaks away, dissolving one scene into the
+   next. The dot field IS the Sankalpa dither, as MOTION. */
+.ditherwipe{position:absolute;inset:0;z-index:53;pointer-events:none;opacity:0;
+  background-color:#0A0A0A;
+  background-image:
+    radial-gradient(circle at 50% 50%, var(--temp) 0 1.4px, transparent 1.6px),
+    radial-gradient(circle at 50% 50%, var(--temp) 0 1px, transparent 1.2px);
+  background-size:8px 8px, 8px 8px;
+  background-position:0 0, 4px 4px;
+  mix-blend-mode:screen;transition:background-image .2s}
+@keyframes ditherIn{0%{opacity:0;transform:scale(1.04)}28%{opacity:1}72%{opacity:1}100%{opacity:0;transform:scale(.985)}}
+
+/* 3 · GLITCH-BLOCKS — checkerboard block-reveal. A grid of hard orange/black
+   squares snaps in then out, the climax breakup move (title, stat-beat, end).
+   Built from two layered conic/repeating patterns animated via clip + opacity. */
+.glitchblocks{position:absolute;inset:0;z-index:53;pointer-events:none;opacity:0;
+  background-color:transparent;
+  background-image:
+    repeating-conic-gradient(var(--temp) 0% 25%, transparent 0% 50%);
+  background-size:64px 64px;mix-blend-mode:screen;transition:background-image .2s}
+@keyframes blockGlitch{
+  0%{opacity:0;clip-path:inset(0 0 100% 0)}
+  14%{opacity:.95;clip-path:inset(0 0 0 0)}
+  30%{opacity:.5;clip-path:inset(38% 0 24% 0)}
+  46%{opacity:.9;clip-path:inset(0 0 0 0)}
+  64%{opacity:.4;clip-path:inset(62% 0 0 0)}
+  100%{opacity:0;clip-path:inset(0 0 100% 0)}
+}
+
+/* 4 · BLUEPRINT SCHEMATIC — a faint technical wireframe of the daily loop
+   that draws itself in via stroke-dashoffset. Texture / atmosphere only, sits
+   far back behind type. NOT a captioned beat — no narrative text, only index
+   ticks + node rings, in the Specter schematic register. */
+.schematic{position:absolute;inset:0;z-index:8;pointer-events:none;opacity:0;
+  transition:opacity .5s}
+.schematic.on{opacity:.5}
+.schematic.faint.on{opacity:.16}   /* behind demos — barely-there texture, never competes */
+.schematic svg{position:absolute;inset:0;width:100%;height:100%}
+.schematic .ln{fill:none;stroke:var(--temp);stroke-width:1.1;opacity:.55;
+  stroke-dasharray:1;stroke-dashoffset:1;transition:stroke .25s}
+.schematic .ln.draw{animation:schematicDraw 1.4s cubic-bezier(.4,0,.2,1) forwards}
+@keyframes schematicDraw{to{stroke-dashoffset:0}}
+.schematic .nd{fill:none;stroke:var(--temp);stroke-width:1.1;opacity:0;transition:stroke .25s}
+.schematic .nd.lit{opacity:.7;animation:ndPulse 2.6s ease-in-out infinite}
+@keyframes ndPulse{0%,100%{opacity:.35}50%{opacity:.8}}
+.schematic .tk{stroke:rgba(255,255,255,.18);stroke-width:1}
+.schematic .lbl-t{font-family:'Departure Mono','Geist Mono',monospace;font-size:9px;
+  letter-spacing:.14em;fill:var(--temp);opacity:0;transition:fill .25s}
+.schematic .lbl-t.lit{opacity:.55}
+
 /* ---- replay button (OUTSIDE the 16:9 frame) ----------------------- */
 .replay{position:fixed;bottom:18px;right:18px;z-index:200;
   font-family:var(--pixel);text-transform:uppercase;letter-spacing:.18em;
@@ -490,9 +587,12 @@ html,body{
 /* reduced-motion: collapse motion to instant, keep the show legible */
 @media (prefers-reduced-motion:reduce){
   .grain,.hud-dot,.caret,.think .dots i,.io-label::before,.msg-typing i,
-  .bar > i::after,.btn .sheen,.btn.run .sheen{animation:none}
+  .bar > i::after,.btn .sheen,.btn.run .sheen,.schematic .nd.lit{animation:none}
   .anim-flicker,.anim-slam,.anim-punch,.anim-fadeup,.anim-fadein,
   .anim-cardin,.anim-rgb,.anim-counter,.anim-statpop{animation-duration:.001s}
+  /* Specter transition primitives: collapse to instant — never play the sweep */
+  .blockwipe .blk,.blockwipe .edge,.ditherwipe,.glitchblocks{animation:none!important;opacity:0!important}
+  .schematic .ln.draw{animation:none;stroke-dashoffset:0}
   .bar > i{transition-duration:.001s}
   .caret{opacity:1}
   .face{image-rendering:auto}
@@ -507,16 +607,52 @@ html,body{
       <!-- the swarm particle canvas (behind everything content-y) -->
       <canvas class="swarm" id="swarm" width="1280" height="720"></canvas>
 
+      <!-- blueprint schematic — faint daily-loop wireframe, draws itself in.
+           Texture/atmosphere only (Specter grammar #2). No narrative text. -->
+      <div class="schematic" id="schematic">
+        <svg viewBox="0 0 1280 720" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+          <!-- the loop ring: five nodes wired in a cycle (recall→reason→…→recall) -->
+          <path class="ln" id="schLoop" d="M 640 168 L 1006 360 L 880 654 L 400 654 L 274 360 Z"></path>
+          <!-- spokes from a central hub to each node -->
+          <path class="ln" id="schSpokes" d="M 640 411 L 640 168 M 640 411 L 1006 360 M 640 411 L 880 654 M 640 411 L 400 654 M 640 411 L 274 360"></path>
+          <!-- node rings -->
+          <circle class="nd" id="schN0" cx="640" cy="168" r="16"></circle>
+          <circle class="nd" id="schN1" cx="1006" cy="360" r="16"></circle>
+          <circle class="nd" id="schN2" cx="880" cy="654" r="16"></circle>
+          <circle class="nd" id="schN3" cx="400" cy="654" r="16"></circle>
+          <circle class="nd" id="schN4" cx="274" cy="360" r="16"></circle>
+          <circle class="nd" id="schHub" cx="640" cy="411" r="9"></circle>
+          <!-- annotation ticks + index labels (structural only) -->
+          <line class="tk" x1="640" y1="138" x2="640" y2="120"></line>
+          <line class="tk" x1="1036" y1="360" x2="1058" y2="360"></line>
+          <line class="tk" x1="244" y1="360" x2="222" y2="360"></line>
+          <text class="lbl-t" id="schL0" x="654" y="120">01</text>
+          <text class="lbl-t" id="schL1" x="1042" y="356">02</text>
+          <text class="lbl-t" id="schL2" x="900" y="690">03</text>
+          <text class="lbl-t" id="schL3" x="356" y="690">04</text>
+          <text class="lbl-t" id="schL4" x="196" y="356">05</text>
+        </svg>
+      </div>
+
       <!-- persistent chrome -->
       <div class="bracket tl"></div><div class="bracket tr"></div>
       <div class="bracket bl"></div><div class="bracket br"></div>
+      <div class="ruler top"></div><div class="ruler bot"></div>
       <div class="hud tl2">SHARPEN · PROMO</div>
       <div class="hud tr2" id="hudPhase"><span class="hud-dot"></span><span id="hudPhaseText">BOOT</span></div>
+      <div class="fig bl2">FIG. <span class="acc" id="figNo">00</span> / 09</div>
+      <div class="fig br2" id="figCoord">X·000 Y·000</div>
       <div class="ticker"><div class="ticker-fill" id="ticker"></div></div>
 
       <!-- effect layers -->
       <div class="flash" id="flash"></div>
       <div class="swipe" id="swipe"></div>
+      <!-- Specter block-wipe: solid orange panel + leading edge, swept on hard cuts -->
+      <div class="blockwipe" id="blockwipe"><div class="blk" id="blk"></div><div class="edge" id="blkEdge"></div></div>
+      <!-- Specter 1-bit dither dissolve -->
+      <div class="ditherwipe" id="ditherwipe"></div>
+      <!-- Specter checkerboard block-glitch (climax) -->
+      <div class="glitchblocks" id="glitchblocks"></div>
       <div class="grain"></div>
 
       <!-- ============ SCENE 0 : ASSEMBLE / KICKER ============ -->
@@ -759,8 +895,13 @@ html,body{
   const swipe    = document.getElementById('swipe');
   const ticker   = document.getElementById('ticker');
   const hudText  = document.getElementById('hudPhaseText');
+  const figNo    = document.getElementById('figNo');
+  const figCoord = document.getElementById('figCoord');
 
   function sceneEl(i){ return scenes.find(s => +s.dataset.scene === i); }
+
+  /* spec-sheet meta: set the FIG index (two-digit) for the current beat */
+  function setFig(n){ if(figNo) figNo.textContent = String(n).padStart(2,'0'); }
 
   /* show exactly one scene (hard cut) */
   function showOnly(i){
@@ -799,6 +940,80 @@ html,body{
     sc.style.animation='none'; void sc.offsetWidth;
     sc.style.animation='punchZoom .42s cubic-bezier(.2,1,.3,1)';
   }
+
+  /* ============================================================
+     SPECTER TRANSITION DRIVERS (the V4 grammar, fired from the timeline)
+     ============================================================ */
+  const blk     = document.getElementById('blk');
+  const blkEdge = document.getElementById('blkEdge');
+  const ditherW = document.getElementById('ditherwipe');
+  const glitchB = document.getElementById('glitchblocks');
+  const schematic = document.getElementById('schematic');
+
+  /* ORANGE BLOCK-WIPE — the signature scene-to-scene move. A solid block
+     sweeps fully across then clears, revealing the next scene under it. Pass
+     a direction ('l2r' | 'r2l') and duration; the leading edge tracks it.
+     Vary direction per cut so it reads mechanical, not repetitive. */
+  function blockWipe(dir, dur){
+    if(REDUCED) return;
+    dur = dur || 0.40;
+    const a   = dir==='r2l' ? 'blkR2L'      : 'blkL2R';
+    const ae  = dir==='r2l' ? 'blkEdgeR2L'  : 'blkEdgeL2R';
+    blk.style.transformOrigin = 'center';
+    blk.style.animation='none'; blkEdge.style.animation='none';
+    void blk.offsetWidth;
+    blk.style.animation     = `${a} ${dur}s cubic-bezier(.7,0,.2,1)`;
+    blkEdge.style.animation = `${ae} ${dur}s cubic-bezier(.7,0,.2,1)`;
+  }
+  /* a vertical-bar block that expands from a seam then retracts — used to
+     vary the wipe vocabulary on a few cuts (Specter mixes block shapes). */
+  function blockExpand(dur){
+    if(REDUCED) return;
+    dur = dur || 0.42;
+    blk.style.transformOrigin = 'center';
+    blk.style.animation='none'; blkEdge.style.animation='none';
+    void blk.offsetWidth;
+    blk.style.animation = `blkExpand ${dur}s cubic-bezier(.7,0,.2,1)`;
+  }
+
+  /* 1-BIT DITHER DISSOLVE — orange stipple field flashes up + breaks away. */
+  function ditherWipe(dur){
+    if(REDUCED) return;
+    ditherW.style.animation='none'; void ditherW.offsetWidth;
+    ditherW.style.animation=`ditherIn ${dur||0.5}s steps(8) forwards`;
+  }
+  /* CHECKERBOARD BLOCK-GLITCH — the climax breakup. */
+  function glitchBlocks(dur){
+    if(REDUCED) return;
+    glitchB.style.animation='none'; void glitchB.offsetWidth;
+    glitchB.style.animation=`blockGlitch ${dur||0.6}s steps(1) forwards`;
+  }
+
+  /* BLUEPRINT SCHEMATIC — draw the daily-loop wireframe in, light the nodes.
+     Texture only; reveal() draws, hide() fades the whole layer out. */
+  function schematicReveal(){
+    if(!schematic) return;
+    if(REDUCED){ schematic.classList.add('on'); return; }
+    ['schLoop','schSpokes'].forEach((id,k)=>{
+      const p=document.getElementById(id); if(!p) return;
+      const len=p.getTotalLength();
+      p.style.strokeDasharray=len; p.style.strokeDashoffset=len;
+      p.classList.remove('draw'); void p.getBoundingClientRect();
+      p.style.animationDelay=(k*0.18)+'s';
+      p.classList.add('draw');
+    });
+    ['schN0','schN1','schN2','schN3','schN4','schHub'].forEach((id,k)=>{
+      const n=document.getElementById(id); if(!n) return;
+      n.classList.remove('lit'); void n.getBoundingClientRect();
+      setTimeout(()=>n.classList.add('lit'), 320+k*90);
+    });
+    ['schL0','schL1','schL2','schL3','schL4'].forEach((id,k)=>{
+      const t=document.getElementById(id); if(!t) return;
+      t.classList.remove('lit'); setTimeout(()=>t.classList.add('lit'), 520+k*90);
+    });
+    schematic.classList.add('on');
+  }
+  function schematicHide(){ if(schematic) schematic.classList.remove('on'); }
 
   /* ============================================================
      SWARM PARTICLE SYSTEM — the V2 signature.
@@ -1105,11 +1320,13 @@ html,body{
        The dithered face coalesces out of a swarm of dots, then the
        crisp <img> fades in on top as the swarm settles. */
     at(0, ()=>{
-      setTemp('train'); hudText.textContent='BOOT';
-      showOnly(0);
+      setTemp('train'); hudText.textContent='BOOT'; setFig(0);
+      showOnly(0); schematicHide();
       const f=document.getElementById('face0'); f.style.opacity='0';
       const wash=document.getElementById('wash0'); if(wash) wash.style.opacity='0';
       document.getElementById('kick0').style.opacity='0';
+      // open on a hard orange block-wipe clearing to reveal the boot frame
+      blockWipe('l2r', .46);
       swarmAssembleFace('assets/face-train.webp', false);
     });
     // crisp image fades in behind the converging swarm
@@ -1117,22 +1334,28 @@ html,body{
     at(1150, ()=>{ const w=document.getElementById('wash0'); if(w) w.style.opacity='.5'; });
     at(1250, ()=> play(document.getElementById('kick0'),'anim-flicker'));
     at(2700, ()=> swarmDisperse());          // scatter back into a swarm
-    at(2860, ()=>{ doSwipe(.4); const f=document.getElementById('face0'); f.style.transition='opacity .35s'; f.style.opacity='0'; });
+    // hard block-wipe (right-to-left) carries us out of boot into the title
+    at(2820, ()=>{ blockWipe('r2l', .42); const f=document.getElementById('face0'); f.style.transition='opacity .3s'; f.style.opacity='0'; });
 
-    /* ---------- SCENE 1 : TITLE SLAM (3.2 – 6.0s) ---------- */
+    /* ---------- SCENE 1 : TITLE SLAM (3.2 – 6.0s) ----------
+       The grammar showcase: dither dissolve in → blueprint schematic draws
+       behind the wordmark → checkerboard glitch + RGB split on the slam. */
     at(3200, ()=>{
-      setTemp('orange'); hudText.textContent='TITLE';
-      showOnly(1); doFlash(.3); swarmBurst();
+      setTemp('orange'); hudText.textContent='TITLE'; setFig(1);
+      showOnly(1); ditherWipe(.5); swarmBurst();
       const f=document.getElementById('face1');
       f.style.opacity='0'; f.style.transition='opacity .8s';
       const t=document.getElementById('title1'), s=document.getElementById('sub1'), k=document.getElementById('kick1');
       t.style.opacity='0'; s.style.opacity='0'; k.style.opacity='0';
     });
     at(3300, ()=>{ const f=document.getElementById('face1'); f.style.opacity='.26'; f.style.filter='contrast(1.1) brightness(.7)'; });
+    // the daily-loop schematic draws itself in behind the wordmark (full-strength texture)
+    at(3340, ()=>{ schematic.classList.remove('faint'); schematicReveal(); });
     at(3320, ()=> play(document.getElementById('kick1'),'anim-flicker'));
-    at(3560, ()=>{ play(document.getElementById('title1'),'anim-slam'); doGlitch(document.getElementById('title1')); });
+    at(3560, ()=>{ play(document.getElementById('title1'),'anim-slam'); glitchBlocks(.5); doGlitch(document.getElementById('title1')); doFlash(.26); });
     at(4060, ()=> play(document.getElementById('sub1'),'anim-fadeup'));
-    at(5650, ()=>{ doSwipe(.4); });
+    // hard block-wipe out of the title into the first demo
+    at(5640, ()=>{ schematicHide(); blockWipe('l2r', .42); });
 
     /* ============================================================
        THE REAL APP, IN MOTION (6.0 – 31.0s)  ~5.0s each.
@@ -1144,33 +1367,40 @@ html,body{
        ============================================================ */
     const demos = [
       {scene:2, temp:'learn',    phase:'LEARN',    src:'assets/face-learn.webp', kind:'type',
-       type:'CRM',                          cps:6 },
+       fig:2, dir:'l2r', type:'CRM',                          cps:6 },
       {scene:3, temp:'spar',     phase:'SPAR',     src:'assets/face-spar.webp',  kind:'spar',
-       type:'remote work beats the office', cps:34},
-      {scene:4, temp:'words',    phase:'WORDS',    src:'assets/face-words.webp', kind:'words'},
+       fig:3, dir:'r2l', type:'remote work beats the office', cps:34},
+      {scene:4, temp:'words',    phase:'WORDS',    src:'assets/face-words.webp', kind:'words',
+       fig:4, dir:'l2r'},
       {scene:5, temp:'train',    phase:'TRAIN',    src:'assets/face-train.webp', kind:'type',
-       type:'endowment effect',             cps:22},
-      {scene:6, temp:'progress', phase:'PROGRESS', src:'assets/face-progress.webp', kind:'progress'}
+       fig:5, dir:'r2l', type:'endowment effect',             cps:22},
+      {scene:6, temp:'progress', phase:'PROGRESS', src:'assets/face-progress.webp', kind:'progress',
+       fig:6, dir:'l2r'}
     ];
 
     let cur = 6000;
     const LEN = 5000;
-    demos.forEach((d)=>{
+    demos.forEach((d, di)=>{
       const s0 = cur;
       const sc = ()=> sceneEl(d.scene);
       const q  = (sel)=> sc().querySelector(sel);
 
-      // [t0] hard cut: face swarm-assembles aside, app frame not yet shown
+      // [t0] hard cut: orange block-wipe (direction alternates per demo) sweeps
+      // across and clears to reveal the demo. Face swarm-assembles aside.
       at(s0, ()=>{
-        setTemp(d.temp); hudText.textContent=d.phase;
-        showOnly(d.scene);
+        setTemp(d.temp); hudText.textContent=d.phase; setFig(d.fig);
+        showOnly(d.scene); schematicHide();
         const el=sc(); el.classList.add('face-aside');
         const f=el.querySelector('.face'); if(f){ f.style.opacity='0'; f.style.transition='opacity .8s'; }
-        doFlash(.22); doSwipe(.4);
+        // every other demo gets the expand-bar variant so the wipe vocab varies
+        if(di % 2 === 1){ blockExpand(.42); } else { blockWipe(d.dir, .40); }
+        doFlash(.18);
         resetDemo(el);
         swarmAssembleFace(d.src, true);
       });
       at(s0+760, ()=>{ const f=q('.face'); if(f) f.style.opacity='.46'; });   // face settles as backdrop
+      // faint daily-loop schematic breathes in behind the demo as texture
+      at(s0+900, ()=>{ schematic.classList.add('faint'); schematicReveal(); });
 
       // [t+240] the app frame punches in (scale-settle)
       at(s0+240, ()=>{ const c=q('.app'); if(c){ c.style.opacity='1'; play(c,'anim-cardin'); } });
@@ -1192,8 +1422,9 @@ html,body{
           rollCounter(q('#sharpNow'), 78, 1100);
         });
         at(s0+1700,()=>{ rollCounter(q('#progCounter'), 30, 1100); rollCounter(q('#ownNum'), 214, 1200); rollCounter(q('#drillNum'), 168, 1300); });
-        // the stat beat: punch + glitch the streak number big (motionimo/Lovable energy, our style)
-        at(s0+3150,()=>{ const cell=q('.stat-cell'); if(cell){ play(cell,'anim-statpop'); } doGlitch(q('#progCounter')); punchScene(d.scene); });
+        // the stat beat: punch + checkerboard block-glitch + RGB split on the
+        // streak number (Specter climax breakup, our carbon+orange register)
+        at(s0+3150,()=>{ const cell=q('.stat-cell'); if(cell){ play(cell,'anim-statpop'); } glitchBlocks(.5); doGlitch(q('#progCounter')); doFlash(.2); punchScene(d.scene); });
 
       } else if(d.kind==='spar'){
         // SPAR — type the claim → ring button → "Claude is countering" typing dots →
@@ -1220,18 +1451,23 @@ html,body{
         at(runAt+2050,()=>{ const tg=q('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
       }
 
-      // disperse the face into a swarm just before the cut
-      at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; } swarmDisperse(); });
+      // disperse the face into a swarm just before the cut; drop the schematic
+      // so the next block-wipe reveals onto a clean frame
+      at(s0+LEN-340, ()=>{ const f=q('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; } schematicHide(); swarmDisperse(); });
 
       cur += LEN;
     });
     // demos end ~ 6000 + 5*5000 = 31000
 
-    /* ---------- VALUE STACK (31.1 – 34.4s) ---------- */
+    /* ---------- VALUE STACK (31.1 – 34.4s) ----------
+       Block-wipe in. The daily-loop schematic returns full-strength behind the
+       stack (the 01–05 nodes mirror the five capabilities). Each item punches;
+       the time-line climax gets the checkerboard glitch. */
     const VSTART = 31100;
     at(VSTART, ()=>{
-      setTemp('orange'); hudText.textContent='WHY';
-      showOnly(7); doFlash(.3); swarmBurst();
+      setTemp('orange'); hudText.textContent='WHY'; setFig(7);
+      showOnly(7); blockWipe('r2l', .42); swarmBurst();
+      schematic.classList.remove('faint'); schematicReveal();
       const items=document.querySelectorAll('#vstack .vstack-item');
       items.forEach(it=>{ it.style.opacity='0'; it.classList.remove('anim-punch'); });
       const vt=document.getElementById('vtime'); vt.style.opacity='0'; vt.style.animation='none';
@@ -1240,21 +1476,27 @@ html,body{
     vitems.forEach((_,i)=>{
       at(VSTART + 160 + i*420, ()=>{
         const el = document.querySelectorAll('#vstack .vstack-item')[i];
-        play(el,'anim-punch'); doSwipe(.2);
+        play(el,'anim-punch');
+        // a thin orange edge tick rides past as each capability lands
+        if(!REDUCED){ blkEdge.style.animation='none'; void blkEdge.offsetWidth;
+          blkEdge.style.animation=`${i%2? 'blkEdgeR2L':'blkEdgeL2R'} .26s linear`; }
       });
     });
     at(VSTART + 160 + vitems.length*420 + 230, ()=>{
       const vt=document.getElementById('vtime');
-      doFlash(.28); doGlitch(vt);
+      glitchBlocks(.5); doFlash(.26); doGlitch(vt);
       vt.style.animation='none'; void vt.offsetWidth;
       vt.style.animation='slamIn .55s cubic-bezier(.2,1.3,.3,1) forwards';
     });
 
-    /* ---------- END CARD (34.45 – 36.9s) : swarm assemble face ---------- */
+    /* ---------- END CARD (34.45 – 36.9s) : swarm assemble face ----------
+       Final hit: dither dissolve in over a block-wipe, schematic returns one
+       last time behind the wordmark, checkerboard glitch + RGB on the slam. */
     const ESTART = 34450;
     at(ESTART, ()=>{
-      setTemp('orange'); hudText.textContent='SHARPEN';
-      showOnly(8); doFlash(.34);
+      setTemp('orange'); hudText.textContent='SHARPEN'; setFig(9);
+      showOnly(8); ditherWipe(.5); doFlash(.3);
+      schematic.classList.remove('faint'); schematicReveal();
       const f=document.getElementById('face8');
       f.style.opacity='0'; f.style.transition='opacity .8s';
       swarmAssembleFace('assets/face-spar.webp', false);
@@ -1262,7 +1504,7 @@ html,body{
     });
     at(ESTART+600,  ()=>{ const f=document.getElementById('face8'); f.style.opacity='.30'; f.style.filter='contrast(1.1) brightness(.66)'; });
     at(ESTART+160,  ()=> play(document.getElementById('kick8'),'anim-flicker'));
-    at(ESTART+420,  ()=>{ play(document.getElementById('endmark'),'anim-slam'); doGlitch(document.getElementById('endmark')); });
+    at(ESTART+420,  ()=>{ play(document.getElementById('endmark'),'anim-slam'); glitchBlocks(.46); doGlitch(document.getElementById('endmark')); });
     at(ESTART+900,  ()=> play(document.getElementById('endline'),'anim-fadeup'));
     at(ESTART+1250, ()=>{
       const u=document.getElementById('endurl');
@@ -1278,11 +1520,20 @@ html,body{
   let idx = 0;
   let rafId = null;
 
+  let coordTick = 0;
   function loop(ts){
     if(startTime===null){ startTime = ts; lastTs = ts; }
     const elapsed = ts - startTime;
 
     ticker.style.width = Math.min(100, (elapsed/TOTAL)*100) + '%';
+
+    // live coordinate readout (spec-sheet instrument feel) — throttled ~6/s
+    if(figCoord && ts-coordTick > 160){
+      coordTick = ts;
+      const x = Math.round((elapsed/TOTAL)*1000)%1000;
+      const y = (Math.round(140 + Math.sin(elapsed/420)*120)+1000)%1000;
+      figCoord.textContent = 'X·'+String(x).padStart(3,'0')+' Y·'+String(y).padStart(3,'0');
+    }
 
     while(idx < steps.length && elapsed >= steps[idx].t){
       try{ steps[idx].fn(); }catch(e){ /* never crash the loop */ }
@@ -1304,6 +1555,9 @@ html,body{
     ticker.style.width = '0%';
     // clear any lingering aside flags / inline styles on faces
     scenes.forEach(s=>{ s.classList.remove('face-aside'); s.style.animation=''; });
+    // reset Specter transition layers so the loop replays clean
+    schematicHide(); schematic.classList.remove('faint');
+    [blk,blkEdge,ditherW,glitchB].forEach(el=>{ if(el) el.style.animation='none'; });
     swarmGain = 0; swarmMode='idle';
     ctx.clearRect(0,0,CW,CH);
     buildTimeline();
