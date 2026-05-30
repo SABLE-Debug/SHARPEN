@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Daily Sharpen — promo</title>
+<title>Daily Sharpen — promo V2</title>
 <link rel="icon" href="data:,">
 
 <!-- The only permitted external resource: Cormorant Garamond display serif. -->
@@ -78,6 +78,10 @@ html,body{
     0 0 0 1px rgba(255,106,0,.10);
 }
 
+/* the swarm canvas — the V2 signature. sits behind type + demos.
+   particle field assembles/disperses faces + elements out of dither dots. */
+.swarm{position:absolute;inset:0;z-index:9;pointer-events:none}
+
 /* film grain overlay (procedural, not an image) */
 .grain{
   position:absolute;inset:0;pointer-events:none;z-index:60;
@@ -123,7 +127,10 @@ html,body{
 .scene{position:absolute;inset:0;z-index:10;opacity:0;visibility:hidden}
 .scene.live{opacity:1;visibility:visible}
 
-/* face layer: the dithered stipple portrait, full-frame, crisp pixels */
+/* face layer: the dithered stipple portrait. In V2 it is the SWARM target
+   (drawn to canvas) on transitions, and a steady backdrop element between
+   transitions. We keep a real <img> as the resting backdrop so detail is
+   crisp; the canvas handles the assemble/disperse motion. */
 .face{
   position:absolute;top:50%;left:50%;
   width:980px;height:auto;            /* 420x180 source upscaled, full frame */
@@ -132,7 +139,13 @@ html,body{
   /* dark ground fuses with carbon panel (Rule 35 figure-ground fusion) */
   filter:contrast(1.08) brightness(1.02);
   -webkit-user-drag:none;user-select:none;
-  z-index:11;
+  z-index:11; opacity:0;
+}
+/* feature scenes push the face to one side as a backdrop/identity element,
+   leaving room for the pipeline demo. JS toggles .face-aside on the scene. */
+.scene.face-aside .face{
+  left:auto; right:-40px; transform:translate(0,-50%) scale(.92);
+  opacity:.5;
 }
 /* temp colour wash over the face (multiply keeps the dither structure) */
 .face-wash{
@@ -140,20 +153,9 @@ html,body{
   width:980px;height:560px;transform:translate(-50%,-50%);
   z-index:12;pointer-events:none;mix-blend-mode:color;
   background:radial-gradient(ellipse 60% 70% at 50% 45%,var(--temp) 0%,transparent 70%);
-  opacity:.55;transition:background .2s;
+  opacity:0;transition:opacity .5s, background .2s;
 }
-/* dither-resolve mask: a sweeping reveal that fakes a stipple assemble */
-.face-reveal{
-  position:absolute;top:50%;left:50%;
-  width:980px;height:560px;transform:translate(-50%,-50%);
-  z-index:13;pointer-events:none;
-  background:
-    linear-gradient(90deg, var(--bg) 0%, var(--bg) 40%, transparent 60%),
-    repeating-linear-gradient(90deg, var(--bg) 0 2px, transparent 2px 4px);
-  background-size:250% 100%, 6px 100%;
-  background-position:140% 0, 0 0;
-  mix-blend-mode:normal;
-}
+.scene.live .face-wash{opacity:.5}
 
 /* center type column */
 .type{position:absolute;inset:0;z-index:20;
@@ -194,14 +196,94 @@ html,body{
 .feat-line em{text-shadow:0 2px 14px rgba(0,0,0,.9)}
 .feat-tag{text-shadow:0 2px 8px rgba(0,0,0,.92)}
 
-/* white/orange flash frame between sections */
-.flash{position:absolute;inset:0;z-index:50;background:var(--orange);
-  opacity:0;pointer-events:none;mix-blend-mode:screen}
+/* ============================================================
+   PIPELINE DEMO PANEL  (the V2 core — show the product working)
+   A stylized mock-UI, iconic + readable, NOT full app fidelity.
+   Sits left-of-centre; the dithered face is the backdrop to its right.
+   ============================================================ */
+.demo{position:absolute;z-index:22;left:108px;top:50%;
+  width:600px;transform:translateY(-50%);
+  pointer-events:none;text-align:left}
+.demo-head{display:flex;align-items:center;gap:12px;margin-bottom:20px}
+.demo-num{font-family:var(--pixel);font-size:12px;letter-spacing:.3em;
+  color:var(--temp);text-transform:uppercase;transition:color .2s;
+  text-shadow:0 2px 8px rgba(0,0,0,.9)}
+.demo-title{font-family:var(--pixel);font-size:30px;letter-spacing:.14em;
+  color:var(--ink);text-transform:uppercase;line-height:1;
+  text-shadow:0 3px 14px rgba(0,0,0,.95),0 0 22px color-mix(in srgb,var(--temp) 40%,transparent)}
 
-/* scanline swipe used on hard cuts */
-.swipe{position:absolute;inset:0;z-index:49;pointer-events:none;opacity:0;
-  background:linear-gradient(90deg,transparent 0%,var(--temp) 48%,var(--temp) 52%,transparent 100%);
-  background-size:300% 100%;background-position:120% 0;mix-blend-mode:screen}
+/* the mock console card */
+.card{position:relative;background:rgba(8,8,8,.82);
+  border:1px solid color-mix(in srgb,var(--temp) 34%,rgba(255,255,255,.07));
+  border-radius:9px;padding:20px 22px;
+  box-shadow:0 18px 60px rgba(0,0,0,.6),0 0 0 1px rgba(0,0,0,.4),
+    inset 0 1px 0 rgba(255,255,255,.04);
+  backdrop-filter:blur(3px);min-height:188px;transition:border-color .2s}
+/* tiny window dots, technical chrome */
+.card::before{content:"";position:absolute;top:13px;left:16px;width:7px;height:7px;
+  border-radius:50%;background:var(--temp);box-shadow:14px 0 0 rgba(255,255,255,.14),28px 0 0 rgba(255,255,255,.14);
+  opacity:.8;transition:background .2s}
+
+/* the input row (where the user types) */
+.io-label{font-family:var(--pixel);font-size:10px;letter-spacing:.26em;
+  color:var(--mid);text-transform:uppercase;margin:6px 0 9px}
+.input-row{display:flex;align-items:center;gap:10px;
+  background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.09);
+  border-radius:6px;padding:13px 15px;margin-bottom:6px;min-height:50px}
+.input-arrow{font-family:var(--pixel);font-size:15px;color:var(--temp);transition:color .2s}
+.input-text{font-family:var(--pixel);font-size:21px;color:var(--ink);
+  letter-spacing:.01em;white-space:pre;line-height:1}
+.input-text .typed{color:var(--ink)}
+/* blinking caret */
+.caret{display:inline-block;width:11px;height:23px;margin-left:1px;
+  background:var(--temp);vertical-align:-4px;transition:background .2s;
+  animation:caretBlink .9s steps(1) infinite}
+@keyframes caretBlink{0%,49%{opacity:1}50%,100%{opacity:0}}
+.caret.solid{animation:none;opacity:1}
+.caret.off{display:none}
+
+/* model "thinking" row */
+.think{display:flex;align-items:center;gap:11px;margin-top:16px;
+  font-family:var(--pixel);font-size:13px;letter-spacing:.12em;
+  color:var(--temp);text-transform:uppercase;opacity:0;transition:color .2s}
+.think .dots{display:inline-flex;gap:5px}
+.think .dots i{width:7px;height:7px;border-radius:50%;background:var(--temp);
+  display:inline-block;animation:thinkPulse 1s ease-in-out infinite;transition:background .2s}
+.think .dots i:nth-child(2){animation-delay:.16s}
+.think .dots i:nth-child(3){animation-delay:.32s}
+@keyframes thinkPulse{0%,100%{opacity:.25;transform:scale(.8)}50%{opacity:1;transform:scale(1.15)}}
+
+/* output block — the model's response. swarm-assembles in. */
+.out{margin-top:16px;opacity:0}
+.out-text{font-family:var(--serif);font-size:25px;line-height:1.28;color:var(--ink);
+  font-style:italic}
+.out-text b{font-style:normal;font-weight:600;color:var(--temp);transition:color .2s}
+.out-mono{font-family:var(--pixel);font-size:20px;letter-spacing:.04em;color:var(--ink);
+  line-height:1.4}
+.out-mono .arrow{color:var(--temp);margin:0 10px;transition:color .2s}
+.out-mono .gloss{color:var(--temp-soft);transition:color .2s}
+
+/* result tag — the "owned / got it / done" stamp */
+.tag{display:inline-flex;align-items:center;gap:8px;margin-top:16px;
+  font-family:var(--pixel);font-size:12px;letter-spacing:.2em;text-transform:uppercase;
+  color:var(--temp);border:1px solid color-mix(in srgb,var(--temp) 50%,transparent);
+  border-radius:5px;padding:7px 13px;opacity:0;transition:color .2s,border-color .2s;
+  box-shadow:0 0 16px color-mix(in srgb,var(--temp) 14%,transparent) inset}
+.tag .chk{color:var(--temp);font-weight:700}
+
+/* progress demo: the sharpness line + rolling counter */
+.spark-wrap{margin-top:8px;position:relative;height:96px}
+.spark{position:absolute;inset:0}
+.spark path{fill:none;stroke:var(--temp);stroke-width:2.4;
+  filter:drop-shadow(0 0 6px color-mix(in srgb,var(--temp) 60%,transparent));
+  stroke-dasharray:1;stroke-dashoffset:1;transition:stroke .2s}
+.spark .axis{stroke:rgba(255,255,255,.1);stroke-width:1;filter:none}
+.counter-row{display:flex;align-items:baseline;gap:14px;margin-top:18px}
+.counter{font-family:var(--serif);font-weight:700;font-style:italic;font-size:74px;
+  color:var(--temp);line-height:.9;letter-spacing:-.01em;transition:color .2s;
+  text-shadow:0 0 34px color-mix(in srgb,var(--temp) 40%,transparent)}
+.counter-cap{font-family:var(--pixel);font-size:13px;letter-spacing:.2em;
+  text-transform:uppercase;color:var(--mid);line-height:1.4}
 
 /* ---- value-stack scene -------------------------------------------- */
 .vstack{position:absolute;inset:0;z-index:20;
@@ -260,30 +342,34 @@ html,body{
 @keyframes fadeUp{0%{opacity:0;transform:translateY(16px)}100%{opacity:1;transform:translateY(0)}}
 .anim-fadeup{animation:fadeUp .5s cubic-bezier(.2,.9,.25,1) forwards}
 
-/* face drift (idle, slow) — runs the whole time a face is on screen */
-@keyframes faceDrift{
-  0%{transform:translate(-50%,-50%) scale(1.04)}
-  100%{transform:translate(-50%,-50%) scale(1.10)}
-}
-/* face entrance scale punch */
-@keyframes faceIn{
-  0%{transform:translate(-50%,-50%) scale(1.18);filter:contrast(1.4) brightness(.6)}
-  100%{transform:translate(-50%,-50%) scale(1.04);filter:contrast(1.08) brightness(1.02)}
-}
+/* fade-in plain (for demo cards — no movement so the typing reads still) */
+@keyframes fadeIn{0%{opacity:0}100%{opacity:1}}
+.anim-fadein{animation:fadeIn .42s ease-out forwards}
 
-/* dither-resolve sweep: the reveal mask wipes off left→right */
-@keyframes ditherResolve{
-  0%{background-position:140% 0, 0 0;opacity:1}
-  70%{opacity:1}
-  100%{background-position:-160% 0, 0 0;opacity:0}
-}
-/* dither-dissolve out: mask wipes back on */
-@keyframes ditherDissolve{
-  0%{background-position:-160% 0,0 0;opacity:0}
-  100%{background-position:60% 0,0 0;opacity:1}
-}
+/* card punch-in (scale settle) */
+@keyframes cardIn{0%{opacity:0;transform:translateY(-50%) scale(.9)}
+  100%{opacity:1;transform:translateY(-50%) scale(1)}}
+.anim-cardin{animation:cardIn .44s cubic-bezier(.2,1.2,.3,1) forwards}
 
-/* flash pop */
+/* RGB channel-split glitch — the hard-beat punctuation. transforms+filter only. */
+@keyframes rgbSplit{
+  0%{filter:none;transform:translate(0,0)}
+  18%{filter:drop-shadow(-7px 0 0 rgba(255,0,80,.7)) drop-shadow(7px 0 0 rgba(0,200,255,.7));transform:translate(2px,0)}
+  34%{filter:drop-shadow(6px 0 0 rgba(255,0,80,.7)) drop-shadow(-6px 0 0 rgba(0,200,255,.7));transform:translate(-2px,0)}
+  52%{filter:drop-shadow(-3px 0 0 rgba(255,0,80,.6)) drop-shadow(3px 0 0 rgba(0,200,255,.6));transform:translate(1px,0)}
+  100%{filter:none;transform:translate(0,0)}
+}
+.anim-rgb{animation:rgbSplit .34s steps(1) forwards}
+
+/* punch-zoom — quick scale stab on a scene container */
+@keyframes punchZoom{0%{transform:scale(1.06)}100%{transform:scale(1)}}
+
+/* counter-roll digit feel handled in JS (number tween); CSS just nudges it up */
+@keyframes counterPop{0%{opacity:0;transform:translateY(18px) scale(.92)}
+  100%{opacity:1;transform:translateY(0) scale(1)}}
+.anim-counter{animation:counterPop .4s cubic-bezier(.2,1.3,.3,1) forwards}
+
+/* film flash + scanline wipe (kept from V1, used sparingly) */
 @keyframes flashPop{0%{opacity:0}12%{opacity:.85}100%{opacity:0}}
 @keyframes swipePop{0%{background-position:120% 0;opacity:0}
   15%{opacity:.9}85%{opacity:.9}100%{background-position:-140% 0;opacity:0}}
@@ -291,6 +377,15 @@ html,body{
 /* end-card glow breathe */
 @keyframes urlBreathe{0%,100%{box-shadow:0 0 24px rgba(255,106,0,.12) inset,0 0 0 rgba(255,106,0,0)}
   50%{box-shadow:0 0 24px rgba(255,106,0,.2) inset,0 0 26px rgba(255,106,0,.25)}}
+
+/* white/orange flash frame between sections */
+.flash{position:absolute;inset:0;z-index:50;background:var(--orange);
+  opacity:0;pointer-events:none;mix-blend-mode:screen}
+
+/* scanline swipe used on hard cuts */
+.swipe{position:absolute;inset:0;z-index:49;pointer-events:none;opacity:0;
+  background:linear-gradient(90deg,transparent 0%,var(--temp) 48%,var(--temp) 52%,transparent 100%);
+  background-size:300% 100%;background-position:120% 0;mix-blend-mode:screen}
 
 /* ---- replay button (OUTSIDE the 16:9 frame) ----------------------- */
 .replay{position:fixed;bottom:18px;right:18px;z-index:200;
@@ -303,8 +398,10 @@ html,body{
 
 /* reduced-motion: collapse motion to instant, keep the show legible */
 @media (prefers-reduced-motion:reduce){
-  .grain,.hud-dot{animation:none}
-  .anim-flicker,.anim-slam,.anim-punch,.anim-fadeup{animation-duration:.001s}
+  .grain,.hud-dot,.caret,.think .dots i{animation:none}
+  .anim-flicker,.anim-slam,.anim-punch,.anim-fadeup,.anim-fadein,
+  .anim-cardin,.anim-rgb,.anim-counter{animation-duration:.001s}
+  .caret{opacity:1}
   .face{image-rendering:auto}
 }
 </style>
@@ -313,6 +410,9 @@ html,body{
 <div class="page">
   <div class="stage-wrap" id="stageWrap">
     <div class="stage" id="stage">
+
+      <!-- the swarm particle canvas (behind everything content-y) -->
+      <canvas class="swarm" id="swarm" width="1280" height="720"></canvas>
 
       <!-- persistent chrome -->
       <div class="bracket tl"></div><div class="bracket tr"></div>
@@ -330,7 +430,6 @@ html,body{
       <section class="scene" data-scene="0">
         <img class="face" id="face0" alt="" src="assets/face-train.webp">
         <div class="face-wash" id="wash0"></div>
-        <div class="face-reveal" id="reveal0"></div>
         <div class="type">
           <div class="kicker" id="kick0" style="font-size:22px">SANKALPA · DAILY EDGE</div>
         </div>
@@ -338,8 +437,7 @@ html,body{
 
       <!-- ============ SCENE 1 : TITLE SLAM ============ -->
       <section class="scene" data-scene="1">
-        <img class="face" id="face1" alt="" src="assets/face-train.webp"
-             style="opacity:.30;filter:contrast(1.1) brightness(.7)">
+        <img class="face" id="face1" alt="" src="assets/face-train.webp">
         <div class="type">
           <div class="kicker" id="kick1" style="margin-bottom:18px">SANKALPA · DAILY EDGE</div>
           <h1 class="headline" id="title1" style="font-size:140px">Daily <em>Sharpen</em></h1>
@@ -347,50 +445,122 @@ html,body{
         </div>
       </section>
 
-      <!-- ============ SCENES 2-6 : FEATURE BEATS (built by JS) ============ -->
+      <!-- ============ SCENES 2-6 : PIPELINE DEMOS (face = backdrop) ============ -->
+      <!-- 02 · LEARN ------------------------------------------------ -->
       <section class="scene feature" data-scene="2">
-        <img class="face" alt="" src="assets/face-train.webp">
-        <div class="face-wash"></div><div class="face-reveal"></div>
-        <div class="type">
-          <div class="feat-tag" style="margin-bottom:16px">FEATURE 01</div>
-          <div class="feat-name" style="font-size:120px">TRAIN</div>
-          <div class="feat-line" style="font-size:46px;margin-top:18px">Pull it from <em>memory</em>.</div>
-        </div>
-      </section>
-      <section class="scene feature" data-scene="3">
         <img class="face" alt="" src="assets/face-learn.webp">
-        <div class="face-wash"></div><div class="face-reveal"></div>
-        <div class="type">
-          <div class="feat-tag" style="margin-bottom:16px">FEATURE 02</div>
-          <div class="feat-name" style="font-size:120px">LEARN</div>
-          <div class="feat-line" style="font-size:42px;margin-top:18px">Drop in anything. <em>Own it</em> forever.</div>
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="learn">
+          <div class="demo-head">
+            <span class="demo-num">FEATURE 01</span>
+            <span class="demo-title">LEARN</span>
+          </div>
+          <div class="card anim-target">
+            <div class="io-label">DROP IN A TERM</div>
+            <div class="input-row">
+              <span class="input-arrow">&gt;</span>
+              <span class="input-text"><span class="typed" data-type="CRM"></span><span class="caret"></span></span>
+            </div>
+            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>EXPLAINING IN PLAIN ENGLISH</span></div>
+            <div class="out">
+              <div class="out-text">A <b>system that tracks every customer</b> &mdash; who they are, what they bought, when you last spoke.</div>
+            </div>
+            <div class="tag" data-tag><span class="chk">&check;</span>OWNED &middot; IN YOUR DECK</div>
+          </div>
         </div>
       </section>
+
+      <!-- 03 · SPAR ------------------------------------------------- -->
+      <section class="scene feature" data-scene="3">
+        <img class="face" alt="" src="assets/face-spar.webp">
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="spar">
+          <div class="demo-head">
+            <span class="demo-num">FEATURE 02</span>
+            <span class="demo-title">SPAR</span>
+          </div>
+          <div class="card anim-target">
+            <div class="io-label">STATE YOUR POSITION</div>
+            <div class="input-row">
+              <span class="input-arrow">&gt;</span>
+              <span class="input-text"><span class="typed" data-type="remote work beats the office"></span><span class="caret"></span></span>
+            </div>
+            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CLAUDE IS COUNTERING</span></div>
+            <div class="out">
+              <div class="out-text"><b>&ldquo;Then why does every org you admire still fight for office time?&rdquo;</b> Proximity compounds trust faster than any call.</div>
+            </div>
+            <div class="tag" data-tag><span class="chk">&check;</span>NOW DEFEND IT</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 04 · WORDS ------------------------------------------------ -->
       <section class="scene feature" data-scene="4">
         <img class="face" alt="" src="assets/face-words.webp">
-        <div class="face-wash"></div><div class="face-reveal"></div>
-        <div class="type">
-          <div class="feat-tag" style="margin-bottom:16px">FEATURE 03</div>
-          <div class="feat-name" style="font-size:120px">WORDS</div>
-          <div class="feat-line" style="font-size:46px;margin-top:18px"><em>20 sharper</em> words a day.</div>
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="words">
+          <div class="demo-head">
+            <span class="demo-num">FEATURE 03</span>
+            <span class="demo-title">WORDS</span>
+          </div>
+          <div class="card anim-target">
+            <div class="io-label">TODAY&rsquo;S CARD &middot; 1 OF 20</div>
+            <div class="out" style="margin-top:10px">
+              <div class="out-mono" style="font-size:30px"><b style="color:var(--ink);font-weight:400">ameliorate</b></div>
+              <div class="out-mono" style="margin-top:14px"><span class="arrow">&rarr;</span><span class="gloss">improve</span> &nbsp;/&nbsp; <span class="gloss">ease</span></div>
+            </div>
+            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>FITTING IT TO HOW YOU WRITE</span></div>
+            <div class="tag" data-tag><span class="chk">&check;</span>GOT IT</div>
+          </div>
         </div>
       </section>
+
+      <!-- 05 · TRAIN ------------------------------------------------ -->
       <section class="scene feature" data-scene="5">
-        <img class="face" alt="" src="assets/face-spar.webp">
-        <div class="face-wash"></div><div class="face-reveal"></div>
-        <div class="type">
-          <div class="feat-tag" style="margin-bottom:16px">FEATURE 04</div>
-          <div class="feat-name" style="font-size:120px">SPAR</div>
-          <div class="feat-line" style="font-size:46px;margin-top:18px">An AI that <em>argues back</em>.</div>
+        <img class="face" alt="" src="assets/face-train.webp">
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="train">
+          <div class="demo-head">
+            <span class="demo-num">FEATURE 04</span>
+            <span class="demo-title">TRAIN</span>
+          </div>
+          <div class="card anim-target">
+            <div class="io-label">DAILY DRILL &middot; RECALL</div>
+            <div class="out" style="margin-top:8px">
+              <div class="out-text" style="font-style:normal;color:var(--ink);font-size:23px">Name the cognitive bias: <b style="color:var(--ink)">we overvalue what we already own.</b></div>
+            </div>
+            <div class="input-row" style="margin-top:14px">
+              <span class="input-arrow">&gt;</span>
+              <span class="input-text"><span class="typed" data-type="endowment effect"></span><span class="caret"></span></span>
+            </div>
+            <div class="think"><span class="dots"><i></i><i></i><i></i></span><span>CHECKING</span></div>
+            <div class="tag" data-tag><span class="chk">&check;</span>PULLED FROM MEMORY</div>
+          </div>
         </div>
       </section>
+
+      <!-- 06 · PROGRESS --------------------------------------------- -->
       <section class="scene feature" data-scene="6">
         <img class="face" alt="" src="assets/face-progress.webp">
-        <div class="face-wash"></div><div class="face-reveal"></div>
-        <div class="type">
-          <div class="feat-tag" style="margin-bottom:16px">FEATURE 05</div>
-          <div class="feat-name" style="font-size:110px">PROGRESS</div>
-          <div class="feat-line" style="font-size:46px;margin-top:18px">Watch your edge <em>compound</em>.</div>
+        <div class="face-wash"></div>
+        <div class="demo" data-demo="progress">
+          <div class="demo-head">
+            <span class="demo-num">FEATURE 05</span>
+            <span class="demo-title">PROGRESS</span>
+          </div>
+          <div class="card anim-target">
+            <div class="io-label">SHARPNESS &middot; LAST 30 DAYS</div>
+            <div class="spark-wrap">
+              <svg class="spark" id="sparkSvg" viewBox="0 0 540 96" preserveAspectRatio="none">
+                <line class="axis" x1="0" y1="95" x2="540" y2="95"></line>
+                <path id="sparkPath" d="M2,86 C70,84 120,70 180,60 C250,48 300,40 360,28 C420,17 480,12 538,6"></path>
+              </svg>
+            </div>
+            <div class="counter-row">
+              <span class="counter" id="progCounter">0</span>
+              <span class="counter-cap">DAY<br>STREAK</span>
+            </div>
+          </div>
         </div>
       </section>
 
@@ -408,8 +578,7 @@ html,body{
 
       <!-- ============ SCENE 8 : END CARD ============ -->
       <section class="scene" data-scene="8">
-        <img class="face" id="face8" alt="" src="assets/face-spar.webp"
-             style="opacity:.34;filter:contrast(1.1) brightness(.66)">
+        <img class="face" id="face8" alt="" src="assets/face-spar.webp">
         <div class="type">
           <div class="kicker" id="kick8" style="margin-bottom:18px">TRAIN DAILY · SANKALPA</div>
           <h1 class="end-mark" id="endmark">Daily <em>Sharpen</em></h1>
@@ -469,11 +638,18 @@ html,body{
     progress: ['#8B95A8','#B9C0CC'],
     orange:   ['#FF6A00','#FF8B4A']
   };
+  // rgb lookup for the canvas particles (mirrors TEMP)
+  const TEMP_RGB = {
+    train:[255,106,0], learn:[79,143,255], words:[95,208,138],
+    spar:[231,184,74], progress:[139,149,168], orange:[255,106,0]
+  };
   const stage = document.getElementById('stage');
+  let curTempRGB = TEMP_RGB.train;
   function setTemp(name){
     const [t,ts] = TEMP[name] || TEMP.orange;
     stage.style.setProperty('--temp', t);
     stage.style.setProperty('--temp-soft', ts);
+    curTempRGB = TEMP_RGB[name] || TEMP_RGB.orange;
   }
 
   /* ---- element refs ---- */
@@ -497,12 +673,11 @@ html,body{
   function play(el, cls){
     if(!el) return;
     el.classList.remove(cls);
-    // force reflow so re-adding restarts the animation
-    void el.offsetWidth;
+    void el.offsetWidth;            // force reflow so re-adding restarts the animation
     el.classList.add(cls);
   }
 
-  /* orange/temp flash frame */
+  /* orange/temp flash frame + scanline swipe + RGB glitch (hard-beat punctuation) */
   function doFlash(dur){
     if(REDUCED) return;
     flash.style.animation='none'; void flash.offsetWidth;
@@ -513,143 +688,450 @@ html,body{
     swipe.style.animation='none'; void swipe.offsetWidth;
     swipe.style.animation=`swipePop ${dur||0.42}s ease-in-out`;
   }
-
-  /* animate a face: entrance punch + slow idle drift, plus dither-resolve sweep */
-  function resolveFace(scene){
-    const face   = scene.querySelector('.face');
-    const reveal = scene.querySelector('.face-reveal');
-    if(face){
-      face.style.animation='none'; void face.offsetWidth;
-      if(REDUCED){
-        face.style.transform='translate(-50%,-50%) scale(1.05)';
-      }else{
-        face.style.animation='faceIn .5s cubic-bezier(.2,.9,.25,1) forwards, faceDrift 6s linear .5s forwards';
-      }
-    }
-    if(reveal){
-      reveal.style.animation='none'; void reveal.offsetWidth;
-      if(REDUCED){ reveal.style.opacity='0'; }
-      else{ reveal.style.animation='ditherResolve .62s cubic-bezier(.4,0,.2,1) forwards'; }
-    }
+  function doGlitch(el){
+    if(REDUCED || !el) return;
+    play(el,'anim-rgb');
   }
-  /* dissolve a face back to stipple on exit (used before some hard cuts) */
-  function dissolveFace(scene, dur){
-    const reveal = scene && scene.querySelector('.face-reveal');
-    if(!reveal || REDUCED) return;
-    reveal.style.animation='none'; void reveal.offsetWidth;
-    reveal.style.animation=`ditherDissolve ${dur||0.22}s steps(6) forwards`;
+  function punchScene(i){
+    if(REDUCED) return;
+    const sc=sceneEl(i); if(!sc) return;
+    sc.style.animation='none'; void sc.offsetWidth;
+    sc.style.animation='punchZoom .42s cubic-bezier(.2,1,.3,1)';
   }
 
   /* ============================================================
-     TIMELINE — array of {t (ms), fn}. A rAF clock drives it.
-     Total ~25.6s, then loops.
+     SWARM PARTICLE SYSTEM — the V2 signature.
+     One reusable pool of particles on a single canvas. Two jobs:
+       1. FACE swarm: sample a dithered face image into an offscreen
+          canvas, read its bright (lit) pixels, use them as targets so
+          the portrait "coalesces out of a swarm of dots" on entry and
+          "scatters into a swarm" on exit.
+       2. GENERIC swarm: scatter burst for non-face transitions.
+     GPU-cheap: 2D canvas, ~2000 particles, additive dots. Each particle
+     eases toward a target with spring-ish lerp + tiny jitter so the
+     motion feels alive, never robotic. Respects prefers-reduced-motion
+     (skips animation, never crashes).
      ============================================================ */
-  const TOTAL = 25600;
+  const cv = document.getElementById('swarm');
+  const ctx = cv.getContext('2d', {alpha:true});
+  const CW = 1280, CH = 720;
+
+  // offscreen sampler for face pixels
+  const off = document.createElement('canvas');
+  const octx = off.getContext('2d', {willReadFrequently:true});
+
+  const N = 2200;                       // particle budget
+  const P = new Array(N);
+  for(let i=0;i<N;i++){
+    P[i] = {
+      x:Math.random()*CW, y:Math.random()*CH,
+      tx:Math.random()*CW, ty:Math.random()*CH,
+      hx:Math.random()*CW, hy:Math.random()*CH,   // "home" scatter point
+      vx:0, vy:0, a:0, ta:0, sz:1, on:false,
+      ph:Math.random()*Math.PI*2                  // jitter phase
+    };
+  }
+
+  // preload + cache sampled targets per face src (so we don't re-read pixels each call)
+  const faceCache = {};               // src -> {pts:[{x,y,b}], ready:true}
+  const faceImgs  = {};
+  const FACE_SRCS = ['assets/face-learn.webp','assets/face-spar.webp',
+    'assets/face-words.webp','assets/face-train.webp','assets/face-progress.webp'];
+
+  // where the face sits on the full 1280x720 stage. matches .face CSS:
+  // width:980 centred, OR pushed aside (right) for feature scenes.
+  function faceBox(aside){
+    // source faces are ~420x180 → keep that ratio. render width 980.
+    const w = aside ? 980*0.92 : 980;
+    const h = w * (180/420);
+    const cx = aside ? (CW - w/2 + 40) : CW/2;   // aside: shoved right (off-edge)
+    const cy = CH/2;
+    return {w,h, x:cx-w/2, y:cy-h/2};
+  }
+
+  function sampleFace(src, aside){
+    const key = src + (aside?'_a':'_c');
+    if(faceCache[key]) return faceCache[key];
+    const img = faceImgs[src];
+    if(!img || !img.complete || !img.naturalWidth) return null;
+
+    const box = faceBox(aside);
+    // sample at modest resolution then map to stage coords
+    const SW = 196, SH = Math.max(1, Math.round(SW*(img.naturalHeight/img.naturalWidth)));
+    off.width = SW; off.height = SH;
+    octx.clearRect(0,0,SW,SH);
+    octx.drawImage(img, 0,0, SW,SH);
+    let data;
+    try{ data = octx.getImageData(0,0,SW,SH).data; }
+    catch(e){ return null; }           // tainted canvas (file://) — caller falls back
+
+    const pts = [];
+    // collect lit pixels (the dither's white dots = the figure)
+    for(let sy=0; sy<SH; sy++){
+      for(let sx=0; sx<SW; sx++){
+        const i=(sy*SW+sx)*4;
+        const lum = data[i]*0.299 + data[i+1]*0.587 + data[i+2]*0.114;
+        if(lum > 120){                  // bright stipple → a particle target
+          pts.push({
+            x: box.x + (sx/SW)*box.w,
+            y: box.y + (sy/SH)*box.h,
+            b: lum/255
+          });
+        }
+      }
+    }
+    const rec = {pts, box};
+    faceCache[key]=rec;
+    return rec;
+  }
+
+  // assign particle targets from a face sample; particles beyond the point
+  // count are parked off-frame (faded out).
+  let swarmMode = 'idle';   // 'assemble' | 'disperse' | 'idle'
+  let swarmGain = 0;        // 0..1 master opacity for the whole field
+
+  function targetsFromFace(src, aside){
+    const rec = sampleFace(src, aside);
+    if(!rec || !rec.pts.length) return false;
+    const pts = rec.pts;
+    for(let i=0;i<N;i++){
+      const p=P[i];
+      if(i < pts.length){
+        // map particles to points (stride so a 2200 pool covers larger sets)
+        const pt = pts[(i*7919) % pts.length];
+        p.tx = pt.x; p.ty = pt.y;
+        p.ta = 0.55 + pt.b*0.45;
+        p.sz = pt.b>0.8 ? 1.7 : 1.25;
+        p.on = true;
+      }else{
+        p.on = false; p.ta = 0;
+      }
+    }
+    return true;
+  }
+
+  // scatter the home positions to a ring/burst around centre (used for exits
+  // and generic transitions)
+  function scatterHomes(spread){
+    spread = spread||1;
+    for(let i=0;i<N;i++){
+      const p=P[i];
+      const ang = Math.random()*Math.PI*2;
+      const rad = (220 + Math.random()*640)*spread;
+      p.hx = CW/2 + Math.cos(ang)*rad;
+      p.hy = CH/2 + Math.sin(ang)*rad*0.62;
+    }
+  }
+  scatterHomes(1);
+
+  function swarmAssembleFace(src, aside){
+    if(REDUCED){ swarmGain=0; swarmMode='idle'; return; }
+    const ok = targetsFromFace(src, aside);
+    if(!ok){ swarmGain=0; swarmMode='idle'; return; }
+    // start particles from their scattered homes
+    scatterHomes(1.05);
+    for(let i=0;i<N;i++){
+      const p=P[i];
+      p.x = p.hx; p.y = p.hy; p.a = 0; p.vx=0; p.vy=0;
+    }
+    swarmMode='assemble'; swarmGain=1;
+  }
+  function swarmDisperse(){
+    if(REDUCED){ swarmGain=0; return; }
+    scatterHomes(1.15);
+    for(let i=0;i<N;i++){
+      const p=P[i];
+      p.tx = p.hx; p.ty = p.hy;       // fly outward to scattered homes
+      p.ta = 0;                       // fade as they fly
+    }
+    swarmMode='disperse'; swarmGain=1;
+  }
+  // generic burst (no face) — used on the title + value-stack + end beats
+  function swarmBurst(){
+    if(REDUCED){ swarmGain=0; return; }
+    for(let i=0;i<N;i++){
+      const p=P[i];
+      const ang=Math.random()*Math.PI*2, rad=Math.random()*70;
+      p.x=CW/2+Math.cos(ang)*rad; p.y=CH/2+Math.sin(ang)*rad;
+      const a2=Math.random()*Math.PI*2, r2=260+Math.random()*620;
+      p.tx=CW/2+Math.cos(a2)*r2; p.ty=CH/2+Math.sin(a2)*r2*0.62;
+      p.a=0; p.ta=0.9; p.sz=1.1+Math.random(); p.on=true; p.vx=0; p.vy=0;
+    }
+    swarmMode='burst'; swarmGain=1;
+  }
+
+  // per-frame particle integration
+  let lastTs = 0;
+  function stepSwarm(ts){
+    const dt = Math.min(40, ts-lastTs||16)/16.7;   // ~frames, capped
+    lastTs = ts;
+    ctx.clearRect(0,0,CW,CH);
+    if(REDUCED || swarmGain<=0.001){ return; }
+
+    // ease master gain down once a burst/disperse has had time to fly out
+    if(swarmMode==='disperse' || swarmMode==='burst'){
+      swarmGain += (0 - swarmGain)*0.045*dt;
+    }
+
+    const [r,g,b] = curTempRGB;
+    ctx.globalCompositeOperation='lighter';
+
+    let aliveAlpha = 0;
+    for(let i=0;i<N;i++){
+      const p=P[i];
+      // spring toward target
+      const k = (swarmMode==='assemble') ? 0.16 : 0.11;
+      p.vx += (p.tx - p.x)*k*dt;
+      p.vy += (p.ty - p.y)*k*dt;
+      p.vx *= 0.78; p.vy *= 0.78;        // damping
+      p.x += p.vx*dt; p.y += p.vy*dt;
+      // organic jitter
+      p.ph += 0.05*dt;
+      const jx = Math.cos(p.ph)*0.5, jy = Math.sin(p.ph*1.3)*0.5;
+      // alpha eases toward target alpha
+      p.a += (p.ta - p.a)*0.12*dt;
+      const al = p.a * swarmGain;
+      aliveAlpha += al;
+      if(al < 0.02) continue;
+      ctx.globalAlpha = Math.min(1, al);
+      const s = p.sz;
+      ctx.fillStyle = `rgb(${r},${g},${b})`;
+      ctx.fillRect((p.x+jx)|0, (p.y+jy)|0, s, s);
+      // a brighter core dot for the hottest particles
+      if(p.sz>1.5){
+        ctx.globalAlpha = Math.min(1, al*0.8);
+        ctx.fillStyle='#fff';
+        ctx.fillRect((p.x+jx)|0,(p.y+jy)|0,1,1);
+      }
+    }
+    ctx.globalAlpha=1;
+    ctx.globalCompositeOperation='source-over';
+
+    // when an assemble has converged, hand off to the crisp <img> + idle the swarm
+    if(swarmMode==='assemble' && aliveAlpha/N > 0.45){
+      // gently fade the swarm out so the real image takes over (already faded in by CSS)
+      swarmGain += (0 - swarmGain)*0.05*dt;
+    }
+  }
+
+  /* ---- type-on engine: types a string into a [data-type] node, char by char ---- */
+  const typers = [];   // active typing timers, cleared on restart
+  function typeInto(node, text, cps, onDone){
+    if(!node) return;
+    if(REDUCED){ node.textContent=text; if(onDone) onDone(); return; }
+    node.textContent='';
+    let i=0;
+    const per = 1000/(cps||26);
+    const tick = ()=>{
+      node.textContent = text.slice(0, ++i);
+      if(i < text.length){
+        const t=setTimeout(tick, per*(0.7+Math.random()*0.7));
+        typers.push(t);
+      } else if(onDone){ onDone(); }
+    };
+    const t0=setTimeout(tick, per);
+    typers.push(t0);
+  }
+  function clearTypers(){ typers.forEach(clearTimeout); typers.length=0; }
+
+  /* ---- number roll for the progress counter ---- */
+  let counterRAF=null;
+  function rollCounter(node, to, dur){
+    if(!node) return;
+    if(counterRAF) cancelAnimationFrame(counterRAF);
+    if(REDUCED){ node.textContent=to; return; }
+    const t0=performance.now();
+    const step=(t)=>{
+      const k=Math.min(1,(t-t0)/dur);
+      const e=1-Math.pow(1-k,3);          // easeOutCubic
+      node.textContent = Math.round(to*e);
+      if(k<1) counterRAF=requestAnimationFrame(step);
+    };
+    counterRAF=requestAnimationFrame(step);
+  }
+
+  /* ---- draw the sharpness spark line (stroke-dashoffset reveal) ---- */
+  function drawSpark(){
+    const path=document.getElementById('sparkPath');
+    if(!path) return;
+    const len=path.getTotalLength();
+    path.style.transition='none';
+    path.style.strokeDasharray=len;
+    path.style.strokeDashoffset=len;
+    void path.getBoundingClientRect();
+    if(REDUCED){ path.style.strokeDashoffset=0; return; }
+    path.style.transition='stroke-dashoffset 1.1s cubic-bezier(.4,0,.2,1)';
+    path.style.strokeDashoffset=0;
+  }
+
+  /* ---- helpers to reveal a demo card's pieces ---- */
+  function resetDemo(sc){
+    if(!sc) return;
+    sc.querySelectorAll('.card').forEach(c=>{ c.classList.remove('anim-cardin','anim-rgb'); c.style.opacity='0'; });
+    sc.querySelectorAll('.think').forEach(t=>{ t.style.opacity='0'; });
+    sc.querySelectorAll('.out').forEach(o=>{ o.style.opacity='0'; });
+    sc.querySelectorAll('[data-tag]').forEach(t=>{ t.style.opacity='0'; t.classList.remove('anim-fadeup'); });
+    sc.querySelectorAll('[data-type]').forEach(n=>{ n.textContent=''; });
+    sc.querySelectorAll('.caret').forEach(c=>{ c.classList.remove('off','solid'); });
+  }
+  function showEl(el, cls){ if(el){ el.style.opacity='1'; if(cls) play(el,cls); } }
+
+  /* ============================================================
+     TIMELINE — array of {t (ms), fn}. A rAF clock drives it.
+     V2 total ~36.4s, then loops.
+     ============================================================ */
+  const TOTAL = 36400;
   let steps = [];
   const at = (t, fn) => steps.push({t, fn});
 
   function buildTimeline(){
     steps = [];
+    clearTypers();
 
-    /* ---------- SCENE 0 : assemble + kicker (0 – 2.8s) ---------- */
+    /* ---------- SCENE 0 : SWARM ASSEMBLE + kicker (0 – 3.2s) ----------
+       The dithered face coalesces out of a swarm of dots, then the
+       crisp <img> fades in on top as the swarm settles. */
     at(0, ()=>{
-      setTemp('train');
-      hudText.textContent='BOOT';
+      setTemp('train'); hudText.textContent='BOOT';
       showOnly(0);
-      const sc = sceneEl(0);
-      // face assembles out of stipple
-      resolveFace(sc);
-      // wash off at first, fades in
-      const wash = document.getElementById('wash0');
-      if(wash){ wash.style.opacity='0'; wash.style.transition='opacity .8s'; }
-      // kicker flickers on shortly after
-      const k = document.getElementById('kick0');
-      k.style.opacity='0';
+      const f=document.getElementById('face0'); f.style.opacity='0';
+      const wash=document.getElementById('wash0'); if(wash) wash.style.opacity='0';
+      document.getElementById('kick0').style.opacity='0';
+      swarmAssembleFace('assets/face-train.webp', false);
     });
-    at(420, ()=>{ const wash=document.getElementById('wash0'); if(wash) wash.style.opacity='.5'; });
-    at(700, ()=>{ play(document.getElementById('kick0'),'anim-flicker'); });
-    at(2050, ()=> dissolveFace(sceneEl(0), .3));
-    at(2350, ()=> doSwipe(.4));
+    // crisp image fades in behind the converging swarm
+    at(900,  ()=>{ const f=document.getElementById('face0'); f.style.transition='opacity .9s'; f.style.opacity='1'; });
+    at(1150, ()=>{ const w=document.getElementById('wash0'); if(w) w.style.opacity='.5'; });
+    at(1250, ()=> play(document.getElementById('kick0'),'anim-flicker'));
+    at(2700, ()=> swarmDisperse());          // scatter back into a swarm
+    at(2860, ()=>{ doSwipe(.4); const f=document.getElementById('face0'); f.style.transition='opacity .35s'; f.style.opacity='0'; });
 
-    /* ---------- SCENE 1 : title slam (2.8 – 5.0s) ---------- */
-    at(2700, ()=>{
+    /* ---------- SCENE 1 : TITLE SLAM (3.2 – 6.0s) ---------- */
+    at(3200, ()=>{
       setTemp('orange'); hudText.textContent='TITLE';
-      showOnly(1); doFlash(.3);
+      showOnly(1); doFlash(.3); swarmBurst();
+      const f=document.getElementById('face1');
+      f.style.opacity='0'; f.style.transition='opacity .8s';
       const t=document.getElementById('title1'), s=document.getElementById('sub1'), k=document.getElementById('kick1');
       t.style.opacity='0'; s.style.opacity='0'; k.style.opacity='0';
     });
-    at(2760, ()=> play(document.getElementById('kick1'),'anim-flicker'));
-    at(3020, ()=> play(document.getElementById('title1'),'anim-slam'));
-    at(3520, ()=> play(document.getElementById('sub1'),'anim-fadeup'));
+    at(3300, ()=>{ const f=document.getElementById('face1'); f.style.opacity='.26'; f.style.filter='contrast(1.1) brightness(.7)'; });
+    at(3320, ()=> play(document.getElementById('kick1'),'anim-flicker'));
+    at(3560, ()=>{ play(document.getElementById('title1'),'anim-slam'); doGlitch(document.getElementById('title1')); });
+    at(4060, ()=> play(document.getElementById('sub1'),'anim-fadeup'));
+    at(5650, ()=>{ doSwipe(.4); });
 
-    /* ---------- FEATURE BEATS (5.0 – 18.0s) ~2.6s each ---------- */
-    const features = [
-      {scene:2, temp:'train',    phase:'TRAIN'},
-      {scene:3, temp:'learn',    phase:'LEARN'},
-      {scene:4, temp:'words',    phase:'WORDS'},
-      {scene:5, temp:'spar',     phase:'SPAR'},
-      {scene:6, temp:'progress', phase:'PROGRESS'}
+    /* ============================================================
+       PIPELINE DEMOS (6.0 – 30.6s)  ~4.9s each.
+       Each: swarm-assemble face aside → card in → type input →
+       thinking pulse → output (swarm-feel) → result tag → disperse.
+       ============================================================ */
+    const demos = [
+      {scene:2, temp:'learn',    phase:'LEARN',    src:'assets/face-learn.webp',
+       type:'CRM',                          cps:7 },
+      {scene:3, temp:'spar',     phase:'SPAR',     src:'assets/face-spar.webp',
+       type:'remote work beats the office', cps:30},
+      {scene:4, temp:'words',    phase:'WORDS',    src:'assets/face-words.webp',
+       type:null,                           cps:0,  wordCard:true},
+      {scene:5, temp:'train',    phase:'TRAIN',    src:'assets/face-train.webp',
+       type:'endowment effect',             cps:20},
+      {scene:6, temp:'progress', phase:'PROGRESS', src:'assets/face-progress.webp',
+       type:null,                           cps:0,  counter:true}
     ];
-    let cur = 5000;
-    const FEAT_LEN = 2520;
-    features.forEach((f)=>{
-      const start = cur;
-      at(start, ()=>{
-        setTemp(f.temp); hudText.textContent=f.phase;
-        showOnly(f.scene); doFlash(.26); doSwipe(.4);
-        const sc = sceneEl(f.scene);
-        resolveFace(sc);
-        // reset + replay type
-        const tag=sc.querySelector('.feat-tag'), nm=sc.querySelector('.feat-name'), ln=sc.querySelector('.feat-line');
-        [tag,nm,ln].forEach(e=>{ if(e) e.style.opacity='0'; });
-      });
-      at(start+120, ()=>{ play(sceneEl(f.scene).querySelector('.feat-tag'),'anim-flicker'); });
-      at(start+320, ()=>{ play(sceneEl(f.scene).querySelector('.feat-name'),'anim-punch'); });
-      at(start+620, ()=>{ play(sceneEl(f.scene).querySelector('.feat-line'),'anim-fadeup'); });
-      // dissolve face just before the cut
-      at(start+FEAT_LEN-260, ()=> dissolveFace(sceneEl(f.scene), .24));
-      cur += FEAT_LEN;
-    });
-    // features end ~ 5000 + 5*2520 = 17600
 
-    /* ---------- VALUE STACK (17.6 – 22.8s) ---------- */
-    const VSTART = 17700;
+    let cur = 6000;
+    const LEN = 4900;
+    demos.forEach((d)=>{
+      const s0 = cur;
+      const sc = ()=> sceneEl(d.scene);
+
+      // [t0] cut in: face swarm-assembles aside, card not yet shown
+      at(s0, ()=>{
+        setTemp(d.temp); hudText.textContent=d.phase;
+        showOnly(d.scene);
+        const el=sc(); el.classList.add('face-aside');
+        const f=el.querySelector('.face'); if(f){ f.style.opacity='0'; f.style.transition='opacity .8s'; }
+        doFlash(.24); doSwipe(.4);
+        resetDemo(el);
+        swarmAssembleFace(d.src, true);
+      });
+      // face image fades in as swarm converges
+      at(s0+780, ()=>{ const f=sc().querySelector('.face'); if(f) f.style.opacity='.5'; });
+
+      // [t+260] card punches in
+      at(s0+260, ()=>{ const c=sc().querySelector('.card'); if(c){ c.style.opacity='1'; play(c,'anim-cardin'); } });
+
+      if(d.wordCard){
+        // WORDS: card content swarm-assembles (the word + gloss), then "got it"
+        at(s0+620, ()=>{ const o=sc().querySelector('.out'); showEl(o,'anim-fadein'); doGlitch(sc().querySelector('.out-mono')); });
+        at(s0+1500,()=>{ const c=sc().querySelectorAll('.caret'); c.forEach(x=>x.classList.add('off')); showEl(sc().querySelector('.think'),'anim-fadein'); });
+        at(s0+2700,()=>{ sc().querySelector('.think').style.opacity='0'; });
+        at(s0+2820,()=>{ const tg=sc().querySelector('[data-tag]'); showEl(tg,'anim-fadeup'); doGlitch(tg); punchScene(d.scene); });
+      } else if(d.counter){
+        // PROGRESS: spark line draws + counter rolls
+        at(s0+620, ()=>{ drawSpark(); });
+        at(s0+1500,()=>{ const cnt=document.getElementById('progCounter'); play(cnt,'anim-counter'); rollCounter(cnt, 30, 1200); });
+        at(s0+2900,()=>{ doGlitch(document.getElementById('progCounter')); punchScene(d.scene); });
+      } else {
+        // LEARN / SPAR / TRAIN: type → think → output types/assembles → tag
+        const tNode = ()=> sc().querySelector('[data-type]');
+        const caret = ()=> sc().querySelector('.caret');
+        at(s0+640, ()=>{ if(caret()) caret().classList.add('solid'); typeInto(tNode(), d.type, d.cps); });
+        // after typing, brief think pulse
+        const typeMs = d.type ? (d.type.length * (1000/d.cps)) : 600;
+        const thinkAt = s0 + 700 + Math.min(1900, typeMs);
+        at(thinkAt, ()=>{ if(caret()) caret().classList.add('off'); showEl(sc().querySelector('.think'),'anim-fadein'); });
+        // output reveals (swarm-feel via glitch-in + fade)
+        at(thinkAt+1000, ()=>{ sc().querySelector('.think').style.opacity='0'; const o=sc().querySelector('.out'); showEl(o,'anim-fadein'); doGlitch(o.querySelector('.out-text')); });
+        // result tag
+        at(thinkAt+1850, ()=>{ const tg=sc().querySelector('[data-tag]'); showEl(tg,'anim-fadeup'); punchScene(d.scene); });
+      }
+
+      // disperse the face into a swarm just before the cut
+      at(s0+LEN-360, ()=>{ const f=sc().querySelector('.face'); if(f){ f.style.transition='opacity .3s'; f.style.opacity='0'; } swarmDisperse(); });
+
+      cur += LEN;
+    });
+    // demos end ~ 6000 + 5*4900 = 30500
+
+    /* ---------- VALUE STACK (30.6 – 34.0s) ---------- */
+    const VSTART = 30700;
     at(VSTART, ()=>{
       setTemp('orange'); hudText.textContent='WHY';
-      showOnly(7); doFlash(.3);
+      showOnly(7); doFlash(.3); swarmBurst();
       const items=document.querySelectorAll('#vstack .vstack-item');
-      items.forEach(it=>{ it.style.opacity='0'; it.classList.remove('anim-fadeup'); });
+      items.forEach(it=>{ it.style.opacity='0'; it.classList.remove('anim-punch'); });
       const vt=document.getElementById('vtime'); vt.style.opacity='0'; vt.style.animation='none';
     });
-    const items = ['RECALL','REASONING','ARTICULATION','CROSS-DOMAIN','QUANT'];
-    items.forEach((_,i)=>{
-      at(VSTART + 180 + i*560, ()=>{
+    const vitems = ['RECALL','REASONING','ARTICULATION','CROSS-DOMAIN','QUANT'];
+    vitems.forEach((_,i)=>{
+      at(VSTART + 160 + i*420, ()=>{
         const el = document.querySelectorAll('#vstack .vstack-item')[i];
-        play(el,'anim-punch'); doSwipe(.22);
+        play(el,'anim-punch'); doSwipe(.2);
       });
     });
-    at(VSTART + 180 + items.length*560 + 250, ()=>{
+    at(VSTART + 160 + vitems.length*420 + 230, ()=>{
       const vt=document.getElementById('vtime');
-      doFlash(.28);
+      doFlash(.28); doGlitch(vt);
       vt.style.animation='none'; void vt.offsetWidth;
       vt.style.animation='slamIn .55s cubic-bezier(.2,1.3,.3,1) forwards';
     });
 
-    /* ---------- END CARD (22.8 – 25.6s) ---------- */
-    const ESTART = 22850;
+    /* ---------- END CARD (34.0 – 36.4s) : swarm assemble face ---------- */
+    const ESTART = 34050;
     at(ESTART, ()=>{
       setTemp('orange'); hudText.textContent='SHARPEN';
       showOnly(8); doFlash(.34);
-      const sc=sceneEl(8);
       const f=document.getElementById('face8');
-      if(f && !REDUCED){ f.style.animation='none'; void f.offsetWidth;
-        f.style.animation='faceIn .6s ease-out forwards, faceDrift 8s linear .6s forwards'; }
+      f.style.opacity='0'; f.style.transition='opacity .8s';
+      swarmAssembleFace('assets/face-spar.webp', false);
       ['kick8','endmark','endline','endurl'].forEach(id=>{ document.getElementById(id).style.opacity='0'; });
     });
-    at(ESTART+120,  ()=> play(document.getElementById('kick8'),'anim-flicker'));
-    at(ESTART+360,  ()=> play(document.getElementById('endmark'),'anim-slam'));
-    at(ESTART+820,  ()=> play(document.getElementById('endline'),'anim-fadeup'));
-    at(ESTART+1150, ()=>{
+    at(ESTART+600,  ()=>{ const f=document.getElementById('face8'); f.style.opacity='.30'; f.style.filter='contrast(1.1) brightness(.66)'; });
+    at(ESTART+160,  ()=> play(document.getElementById('kick8'),'anim-flicker'));
+    at(ESTART+420,  ()=>{ play(document.getElementById('endmark'),'anim-slam'); doGlitch(document.getElementById('endmark')); });
+    at(ESTART+900,  ()=> play(document.getElementById('endline'),'anim-fadeup'));
+    at(ESTART+1250, ()=>{
       const u=document.getElementById('endurl');
       play(u,'anim-fadeup');
       if(!REDUCED){ setTimeout(()=>{ u.style.animation='urlBreathe 2.2s ease-in-out infinite'; },520); }
@@ -658,36 +1140,39 @@ html,body{
     steps.sort((a,b)=>a.t-b.t);
   }
 
-  /* ---- rAF clock ---- */
+  /* ---- rAF clock (drives both the timeline AND the swarm integrator) ---- */
   let startTime = null;
   let idx = 0;
   let rafId = null;
 
   function loop(ts){
-    if(startTime===null) startTime = ts;
+    if(startTime===null){ startTime = ts; lastTs = ts; }
     const elapsed = ts - startTime;
 
-    // progress ticker
     ticker.style.width = Math.min(100, (elapsed/TOTAL)*100) + '%';
 
-    // fire any due steps
     while(idx < steps.length && elapsed >= steps[idx].t){
       try{ steps[idx].fn(); }catch(e){ /* never crash the loop */ }
       idx++;
     }
 
-    if(elapsed >= TOTAL){
-      restart();
-      return;
-    }
+    try{ stepSwarm(ts); }catch(e){ /* swarm must never crash the loop */ }
+
+    if(elapsed >= TOTAL){ restart(); return; }
     rafId = requestAnimationFrame(loop);
   }
 
   function restart(){
     if(rafId) cancelAnimationFrame(rafId);
+    if(counterRAF) cancelAnimationFrame(counterRAF);
+    clearTypers();
     startTime = null;
     idx = 0;
     ticker.style.width = '0%';
+    // clear any lingering aside flags / inline styles on faces
+    scenes.forEach(s=>{ s.classList.remove('face-aside'); s.style.animation=''; });
+    swarmGain = 0; swarmMode='idle';
+    ctx.clearRect(0,0,CW,CH);
     buildTimeline();
     rafId = requestAnimationFrame(loop);
   }
@@ -695,15 +1180,31 @@ html,body{
   /* replay button */
   document.getElementById('replayBtn').addEventListener('click', restart);
 
-  /* boot once fonts settle (don't block on it) */
+  /* ---- preload faces, THEN boot (so the first swarm has pixel data) ---- */
+  function preloadFaces(done){
+    let left = FACE_SRCS.length;
+    if(!left){ done(); return; }
+    let settled=false;
+    const finish=()=>{ if(!settled){ settled=true; done(); } };
+    FACE_SRCS.forEach(src=>{
+      const img=new Image();
+      try{ img.crossOrigin='anonymous'; }catch(e){}
+      img.onload = img.onerror = ()=>{ faceImgs[src]=img; if(--left<=0) finish(); };
+      img.src = src;
+    });
+    setTimeout(finish, 1200);   // never block boot on slow/missing assets
+  }
+
   function boot(){ buildTimeline(); rafId = requestAnimationFrame(loop); }
+
+  // boot once fonts settle AND faces are in (whichever resolves — capped)
+  let started=false;
+  const go=()=>{ if(!started){ started=true; preloadFaces(boot); } };
   if(document.fonts && document.fonts.ready){
-    let booted=false;
-    const go=()=>{ if(!booted){booted=true; boot();} };
     document.fonts.ready.then(go);
-    setTimeout(go, 350); // fail-safe: never wait on fonts
+    setTimeout(go, 350);        // fail-safe: never wait on fonts
   }else{
-    boot();
+    go();
   }
 })();
 </script>
