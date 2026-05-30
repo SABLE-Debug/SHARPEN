@@ -58,11 +58,13 @@ html,body{
 
 /* ---- the 16:9 canvas ------------------------------------------------ */
 .stage-wrap{
-  /* scaled by JS via --scale so 1280x720 fits any viewport */
+  /* scaled by JS via --scale so 1280x720 fits any viewport.
+     Centred via fixed + translate(-50%,-50%) so it stays dead-centre even when
+     the unscaled 1280px box is wider than the viewport (mobile Safari flex chokes on that). */
   width:1280px;height:720px;
-  transform:scale(var(--scale,1));
+  position:fixed; left:50%; top:50%;
+  transform:translate(-50%,-50%) scale(var(--scale,1));
   transform-origin:center center;
-  position:relative;
 }
 .stage{
   position:absolute;inset:0;
