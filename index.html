@@ -1068,24 +1068,38 @@ async function learnIt(){
 function wordsToday(){
   const dk=dayKey();
   let day=LS.get('wordDay',{d:'',ids:[]});
+  const unseen=WORDS.map((w,i)=>i).filter(i=>!S.seenWords.includes(i));
   if(day.d!==dk){
-    const pool=WORDS.map((w,i)=>i).filter(i=>!S.seenWords.includes(i));
-    const todays=pool.length?pool:WORDS.map((w,i)=>i); // no daily cap — every unseen word is available
-    day={d:dk,ids:todays}; LS.set('wordDay',day); LS.set('doneToday',{d:dk,ids:[]});
+    day={d:dk,ids:unseen.length?unseen:WORDS.map((w,i)=>i)}; LS.set('wordDay',day); LS.set('doneToday',{d:dk,ids:[]});
+  } else { // same day — keep expanding to every available word; no cap, no freeze
+    const extra=unseen.filter(i=>!day.ids.includes(i)); if(extra.length){day.ids=day.ids.concat(extra);LS.set('wordDay',day);}
   }
   let done=LS.get('doneToday',{d:'',ids:[]}); if(done.d!==dk){done={d:dk,ids:[]};LS.set('doneToday',done);}
   return {dk,day,done};
+}
+async function moreWords(btn){
+  if(btn){btn.disabled=true;btn.textContent='generating…';}
+  try{
+    const have=WORDS.slice(-60).map(w=>w[0]).join(', ');
+    const out=await callHaiku('Generate upgrade-level English vocabulary — sharp, useful words that make speech and writing better (like tenuous, salient, ostensible, bifurcation). STRICT JSON ONLY, no prose, no code fences: {"words":[["word","simple one-line meaning","short example sentence using it","phonetic"]]}. Exactly 20 entries, no basic words.',
+      [{role:'user',content:'20 fresh words I can use daily. Do NOT repeat any of these: '+have}],2200);
+    const j=JSON.parse(out.replace(/```json|```/g,'').trim());
+    const fresh=(j.words||[]).filter(w=>Array.isArray(w)&&w[0]&&!WORDS.some(x=>(x[0]||'').toLowerCase()===String(w[0]).toLowerCase())).map(w=>[String(w[0]),String(w[1]||''),String(w[2]||''),String(w[3]||'')]);
+    fresh.forEach(w=>WORDS.push(w));
+    const mine=LS.get('mine',{c:[],w:[]}); fresh.forEach(w=>mine.w.push(w)); LS.set('mine',mine);
+    renderWords();
+  }catch(e){ if(btn){btn.disabled=false;btn.textContent='Generate 20 more ▸';} const o=$('#wordList'); if(o)o.insertAdjacentHTML('afterbegin','<div class="warnbox shake" style="margin-bottom:10px">Could not generate: '+esc(e.message)+'</div>'); }
 }
 function renderWords(){
   const {day,done}=wordsToday();
   const remaining=day.ids.filter(i=>!done.ids.includes(i));
   const total=day.ids.length, doneN=total-remaining.length;
   if(!remaining.length){
-    $('#wordList').innerHTML=`<div class="empty"><img class="face-portrait" src="./assets/face-words.webp" width="420" height="180" alt="" aria-hidden="true"/><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Add more instantly via Learn, or come back tomorrow.</div></div>`;
+    $('#wordList').innerHTML=`<div class="empty"><img class="face-portrait" src="./assets/face-words.webp" width="420" height="180" alt="" aria-hidden="true"/><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these so they stick. Want more right now?</div><button class="btn sm" style="margin-top:12px" onclick="moreWords(this)">Generate 20 more ▸</button></div>`;
     return;
   }
   const i=remaining[0], w=WORDS[i];
-  $('#wordList').innerHTML=`<div class="small mono" style="margin-bottom:10px">${doneN}/${total} done today · ${remaining.length} to go</div>
+  $('#wordList').innerHTML=`<div class="small mono" style="margin-bottom:10px;display:flex;justify-content:space-between;align-items:center"><span>${doneN}/${total} done today · ${remaining.length} to go</span><button class="btn sm ghost" style="padding:4px 9px;font-size:10px" onclick="moreWords(this)">+ 20 more</button></div>
     <div class="word" id="wcard"><div>
       <div class="up">${w[0]} <span class="eq">: ${w[1]}</span> <button class="spk" onclick="speak('${w[0]}',event)" aria-label="Say it" style="font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--tab-temp);border:1px solid var(--line);padding:0 7px">say</button></div>
       <div class="ex">${w[2]} · /${w[3]}/</div></div>
