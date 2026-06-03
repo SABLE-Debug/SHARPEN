@@ -1120,20 +1120,26 @@ function markWord(i,ok){
 function reviewWord(i){
   const w=WORDS[i];
   $('#reviewArea').innerHTML=`<div class="card tight" style="margin-top:10px">
-    <div class="lbl">Deploy it · use “${w[0]}” in 3 sentences</div>
-    <p class="goal">Using a word is what makes it yours — not re-reading the definition. Three real sentences, about anything in your life.</p>
-    <textarea id="rv" placeholder="1. …&#10;2. …&#10;3. …" style="min-height:120px"></textarea>
-    <button class="btn sm" style="margin-top:9px" onclick="submitReview(${i})">Done ▸</button>
+    <div class="lbl">Deploy it · use “${w[0]}” in one sentence</div>
+    <p class="goal">Using a word once, correctly, is what makes it yours. Write one real sentence — I'll tell you if you nailed the usage.</p>
+    <textarea id="rv" placeholder="Your one sentence using “${w[0]}”…" style="min-height:90px"></textarea>
+    <button class="btn sm" style="margin-top:9px" id="rvBtn" onclick="submitReview(${i},this)">Check ▸</button>
     <div id="rvfb"></div></div>`;
   $('#reviewArea').scrollIntoView({behavior:'smooth',block:'center'});
 }
-function submitReview(i){
-  const w=WORDS[i], t=$('#rv').value||'';
+async function submitReview(i,btn){
+  const w=WORDS[i], t=($('#rv').value||'').trim();
   const safe=w[0].replace(/[.*+?^${}()|[\]\\]/g,'\\$&');
-  const uses=(t.match(new RegExp('\\b'+safe+'\\b','gi'))||[]).length;
-  if(uses<3){$('#rvfb').innerHTML=`<div class="fb">You've used “${w[0]}” <b>${uses}/3</b> times — work it into ${3-uses} more, then tap Done again.</div>`;return;}
-  grade('w_'+WORDS[i][0],false); wordDone(i);
-  renderWords(); refreshUI();
+  if(!t||!(new RegExp('\\b'+safe+'\\b','i')).test(t)){$('#rvfb').innerHTML=`<div class="fb">Write one sentence that actually uses “${w[0]}”, then tap Check.</div>`;return;}
+  if(btn){btn.disabled=true;btn.textContent='checking…';}
+  try{
+    const out=(await callHaiku('You check vocabulary usage. The word is "'+w[0]+'" (meaning: '+w[1]+'). Judge ONLY whether the user used "'+w[0]+'" correctly and naturally in their sentence. Reply in EXACTLY this format: first line either CORRECT or NOT QUITE, then one short sentence — if correct, why it works; if not, the precise fix. No preamble.',[{role:'user',content:t}],300)).trim();
+    const ok=/^correct/i.test(out);
+    grade('w_'+w[0],ok); wordDone(i);
+    const note=esc(out.replace(/^(correct|not quite)[:.\-—\s]*/i,'')).replace(/\n/g,'<br>');
+    if(btn)btn.style.display='none';
+    $('#rvfb').innerHTML=`<div class="fb"><b style="color:${ok?'#7fd07f':'#e0683f'}">${ok?'✓ Used correctly':'✗ Not quite'}</b><br>${note}<div class="row" style="margin-top:10px"><button class="btn sm" onclick="renderWords();refreshUI()">Next word ▸</button></div></div>`;
+  }catch(e){ if(btn){btn.disabled=false;btn.textContent='Check ▸';} $('#rvfb').innerHTML=`<div class="warnbox shake">${esc(e.message)}</div>`; }
 }
 
 //= ===================== NAV + UI =====================
