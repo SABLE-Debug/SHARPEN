@@ -445,7 +445,7 @@
   <div class="sec-head"><span class="sh-k">Words</span><span class="sh-x">03 / LEXICON</span></div>
   <div class="card tight hero-bg hero-words dither">
     <div class="face"><img src="./assets/face-words.webp" width="420" height="180" alt="" aria-hidden="true"/></div>
-    <div class="lbl">Words · 20 new a day, in plain format</div>
+    <div class="lbl">Words · daily lexicon, no cap</div>
     <p class="todo">Read each upgrade word as <b>fancy : simple</b>, tap <b>say</b> to hear it, then mark <b>Got it</b> or <b>Review</b>. Today's words get pulled into your drills + spar so you actually <i>use</i> them.</p>
     <p class="goal">Goal: a visibly sharper vocabulary — <b>deployed</b>, not memorised. Spaced repetition resurfaces them until they stick.</p>
   </div>
@@ -923,6 +923,7 @@ function submitDrill(d){
     extra+=`<br>Used “${d.target.join(', ')}”: <b class="${used?'stat':''}">${used?'yes ✓':'no — work it in'}</b>`;}
   $('#fbArea').innerHTML=`<div class="fb">${heurFb(h)}${extra}
     <hr class="hr"/><b>Check yourself against this:</b><br>${esc(d.answer)}
+    ${hatchHTML(d.answer)}
     <div class="row" style="margin-top:10px">
       <button class="btn sm" id="gGot">Got it ✓</button>
       <button class="btn sm ghost" id="gRev">Review ↻</button>
@@ -967,6 +968,19 @@ async function callHaiku(system, messages, maxTok=220){
   if(!res.ok){const e=await res.text();throw new Error('API '+res.status+': '+e.slice(0,120));}
   const j=await res.json(); if(j.usage)bill(j.usage);
   return (j.content&&j.content[0]&&j.content[0].text)||'';
+}
+// Universal teach-hatch — anywhere you don't know it, learn it for that exact item.
+function hatchHTML(topic){const t=esc(String(topic||'').slice(0,400)).replace(/"/g,'&quot;');
+  return `<details class="hatch" data-topic="${t}" style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px"><summary style="cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--tab-temp,#FF6A00)">Don't know it? — teach me &#9656;</summary><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn sm ghost" onclick="hatch(this,'teach')">Teach me</button><button class="btn sm ghost" onclick="hatch(this,'analogy')">Analogy</button><button class="btn sm ghost" onclick="hatch(this,'explain')">Explain it</button></div><div class="hout small" style="margin-top:9px;line-height:1.55"></div></details>`;}
+async function hatch(btn,type){
+  const wrap=btn.closest('.hatch'),topic=wrap.dataset.topic,out=wrap.querySelector('.hout');
+  out.textContent='teaching…';
+  const P={teach:'Teach this from scratch, plainly and as thoroughly as it needs, so I genuinely understand and retain it: "'+topic+'". No preamble.',
+    analogy:'Give me one vivid analogy that makes this click and stick: "'+topic+'". No preamble.',
+    explain:'Give me a tight, repeatable way to explain this that I can absorb and say back to someone: "'+topic+'". No preamble.'};
+  try{const txt=await callHaiku('You are a sharp tutor. Teach so it sticks — clear, concrete, no fluff.',[{role:'user',content:P[type]}],900);
+    out.innerHTML=esc(txt).replace(/\n/g,'<br>');}
+  catch(e){out.textContent=e.message;}
 }
 async function aiGrade(d){
   const text=$('#ans').value.trim(); if(!text){return;}
@@ -1052,7 +1066,7 @@ function wordsToday(){
   let day=LS.get('wordDay',{d:'',ids:[]});
   if(day.d!==dk){
     const pool=WORDS.map((w,i)=>i).filter(i=>!S.seenWords.includes(i));
-    const todays=(pool.length>=20?pool:WORDS.map((w,i)=>i)).slice(0,20);
+    const todays=pool.length?pool:WORDS.map((w,i)=>i); // no daily cap — every unseen word is available
     day={d:dk,ids:todays}; LS.set('wordDay',day); LS.set('doneToday',{d:dk,ids:[]});
   }
   let done=LS.get('doneToday',{d:'',ids:[]}); if(done.d!==dk){done={d:dk,ids:[]};LS.set('doneToday',done);}
@@ -1063,7 +1077,7 @@ function renderWords(){
   const remaining=day.ids.filter(i=>!done.ids.includes(i));
   const total=day.ids.length, doneN=total-remaining.length;
   if(!remaining.length){
-    $('#wordList').innerHTML=`<div class="empty"><img class="face-portrait" src="./assets/face-words.webp" width="420" height="180" alt="" aria-hidden="true"/><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Back tomorrow for 20 new.</div></div>`;
+    $('#wordList').innerHTML=`<div class="empty"><img class="face-portrait" src="./assets/face-words.webp" width="420" height="180" alt="" aria-hidden="true"/><div class="em-t">All ${total} done today</div><div class="em-s">Spaced repetition will resurface these over the coming days so they stick. Add more instantly via Learn, or come back tomorrow.</div></div>`;
     return;
   }
   const i=remaining[0], w=WORDS[i];
@@ -1075,6 +1089,7 @@ function renderWords(){
         <button class="btn sm" onclick="markWord(${i},true)">Got it</button>
         <button class="btn sm ghost" onclick="reviewWord(${i})">Review</button>
       </div></div>
+    ${hatchHTML(w[0]+' — '+w[1])}
     <div id="reviewArea"></div>`;
 }
 function wordDone(i){const d=LS.get('doneToday',{d:dayKey(),ids:[]});if(!d.ids.includes(i))d.ids.push(i);LS.set('doneToday',d);if(!S.seenWords.includes(i))S.seenWords.push(i);save();}
@@ -1142,7 +1157,7 @@ function refreshUI(){
 const ONB=[
   ["What Sharpen is","A daily gym for the thinking Claude can't build for you: pulling knowledge from memory, reasoning on your feet, articulating sharply, and a growing vocabulary. ~8 minutes a day."],
   ["How a session works","Tap Start. You get a short run of drills — explain, recall, connect, compress, numbers. Type your answer (mutter it aloud), then check yourself against the model answer. Honest self-grade feeds the spaced-repetition that makes it stick."],
-  ["The five tabs","◎ Today = your daily loop · ◆ Spar = a live AI opponent who argues back · ▦ Words = 20 new a day · ▲ Progress = your sharpness trend + spend meter · ⚙ Settings = your API key. Tap the ? on any screen if you're unsure."]
+  ["The five tabs","◎ Today = your daily loop · ◆ Spar = a live AI opponent who argues back · ▦ Words = new vocab, no daily cap · ▲ Progress = your sharpness trend + spend meter · ⚙ Settings = your API key. Tap the ? on any screen if you're unsure."]
 ];
 let onbI=0;
 function showOnb(){onbI=0;renderOnb();$('#onb').classList.add('on');}
