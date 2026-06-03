@@ -906,6 +906,7 @@ function renderDrill(){
       <button class="btn sm" id="submit">Submit ▸</button>
       ${S.key?'<button class="btn sm ghost" id="aigrade">AI grade</button>':''}
     </div>
+    ${hatchHTML(d.todo)}
     <div id="fbArea"></div>
   </div>`;
   $('#submit').onclick=()=>submitDrill(d);
@@ -970,10 +971,13 @@ async function callHaiku(system, messages, maxTok=220){
   return (j.content&&j.content[0]&&j.content[0].text)||'';
 }
 // Universal teach-hatch — anywhere you don't know it, learn it for that exact item.
-function hatchHTML(topic){const t=esc(String(topic||'').slice(0,400)).replace(/"/g,'&quot;');
-  return `<details class="hatch" data-topic="${t}" style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px"><summary style="cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--tab-temp,#FF6A00)">Don't know it? — teach me &#9656;</summary><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn sm ghost" onclick="hatch(this,'teach')">Teach me</button><button class="btn sm ghost" onclick="hatch(this,'analogy')">Analogy</button><button class="btn sm ghost" onclick="hatch(this,'explain')">Explain it</button></div><div class="hout small" style="margin-top:9px;line-height:1.55"></div></details>`;}
+function hatchHTML(topic,fromId){const t=esc(String(topic||'').slice(0,400)).replace(/"/g,'&quot;');
+  return `<details class="hatch" data-topic="${t}" data-from="${fromId||''}" style="margin-top:10px;border-top:1px solid var(--line);padding-top:9px"><summary style="cursor:pointer;font-family:var(--mono);font-size:11px;letter-spacing:.08em;color:var(--tab-temp,#FF6A00)">Don't know it? — teach me &#9656;</summary><div style="display:flex;gap:7px;flex-wrap:wrap;margin-top:9px"><button class="btn sm ghost" onclick="hatch(this,'teach')">Teach me</button><button class="btn sm ghost" onclick="hatch(this,'analogy')">Analogy</button><button class="btn sm ghost" onclick="hatch(this,'explain')">Explain it</button></div><div class="hout small" style="margin-top:9px;line-height:1.55"></div></details>`;}
 async function hatch(btn,type){
-  const wrap=btn.closest('.hatch'),topic=wrap.dataset.topic,out=wrap.querySelector('.hout');
+  const wrap=btn.closest('.hatch'),out=wrap.querySelector('.hout');
+  let topic=wrap.dataset.topic;
+  if(!topic&&wrap.dataset.from){const el=document.getElementById(wrap.dataset.from);topic=el?el.value.trim():'';}
+  if(!topic){out.textContent='Type something above first, then tap.';return;}
   out.textContent='teaching…';
   const P={teach:'Teach this from scratch, plainly and as thoroughly as it needs, so I genuinely understand and retain it: "'+topic+'". No preamble.',
     analogy:'Give me one vivid analogy that makes this click and stick: "'+topic+'". No preamble.',
@@ -1179,6 +1183,9 @@ function boot(){
   $('#sparSend').onclick=sparSend;
   $('#sparMsg')&&$('#sparMsg').addEventListener('keydown',e=>{if(e.key==='Enter'&&(e.metaKey||e.ctrlKey))sparSend()});
   $('#sparDebrief').onclick=sparDebrief;
+  // teach-hatch on every feature — Learn + Spar teach off their live input
+  $('#learnGo')&&$('#learnGo').insertAdjacentHTML('afterend',hatchHTML('','learnIn'));
+  $('#sparStart')&&$('#sparStart').insertAdjacentHTML('beforeend',hatchHTML('','sparTopic'));
   $('#saveSet').onclick=()=>{const num=v=>parseFloat(String(v||'').replace(/[^0-9.]/g,''))||0;
     S.key=$('#apiKey').value.trim();S.balance=num($('#balance').value);
     S.dailyCap=num($('#dailyCap').value);save();$('#setStatus').textContent='Saved. '+(S.key?'AI features on.':'Offline mode (no key).');refreshUI();};
